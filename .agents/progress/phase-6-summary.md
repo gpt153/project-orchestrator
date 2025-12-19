@@ -95,7 +95,7 @@ async def handle_issue_comment(payload: dict, session: AsyncSession) -> dict:
     comment_body = comment.get("body", "")
 
     # Check if bot is mentioned
-    bot_mention = "@project-orchestrator"
+    bot_mention = "@po"
     if bot_mention not in comment_body.lower():
         return {"status": "ignored", "reason": "Bot not mentioned"}
 
@@ -107,7 +107,7 @@ async def handle_issue_comment(payload: dict, session: AsyncSession) -> dict:
 ```
 
 **Features**:
-- Detects @project-orchestrator mentions
+- Detects @po mentions
 - Extracts clean user message
 - Routes to orchestrator agent
 - Returns AI response
@@ -263,13 +263,13 @@ GITHUB_WEBHOOK_SECRET=your_webhook_secret_here
 **User Action**:
 ```
 Comment on Issue #42:
-"@project-orchestrator can you help me implement user authentication?"
+"@po can you help me implement user authentication?"
 ```
 
 **System Flow**:
 1. GitHub sends webhook to `/webhooks/github/`
 2. Webhook handler verifies signature
-3. Detects @project-orchestrator mention
+3. Detects @po mention
 4. Finds project by repository URL
 5. Extracts message: "can you help me implement user authentication?"
 6. Calls `run_orchestrator(project_id, message, session)`
