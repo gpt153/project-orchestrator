@@ -22,6 +22,8 @@ from src.agent.tools import (
 )
 from src.config import settings
 from src.database.models import MessageRole, ProjectStatus
+from src.services.workflow_orchestrator import advance_workflow, get_workflow_state
+from src.services.scar_executor import get_command_history
 
 # Initialize the PydanticAI agent
 orchestrator_agent = Agent(
@@ -165,6 +167,81 @@ async def save_vision_document(
     await update_project_vision(ctx.deps.session, ctx.deps.project_id, vision_doc)
 
     return "Vision document saved successfully"
+
+
+@orchestrator_agent.tool
+async def get_workflow_status(ctx: RunContext[AgentDependencies]) -> dict:
+    """
+    Get current workflow status and next action.
+
+    Args:
+        ctx: Agent context with dependencies
+
+    Returns:
+        dict: Workflow state information
+    """
+    if not ctx.deps.project_id:
+        return {"error": "No active project"}
+
+    state = await get_workflow_state(ctx.deps.session, ctx.deps.project_id)
+
+    return {
+        "current_phase": state.current_phase,
+        "next_action": state.next_action,
+        "awaiting_approval": state.awaiting_approval,
+    }
+
+
+@orchestrator_agent.tool
+async def continue_workflow(ctx: RunContext[AgentDependencies]) -> str:
+    """
+    Advance the workflow to the next phase.
+
+    This automatically executes the next SCAR command or creates an approval gate.
+
+    Args:
+        ctx: Agent context with dependencies
+
+    Returns:
+        str: Status message about what was done
+    """
+    if not ctx.deps.project_id:
+        return "Error: No active project"
+
+    success, message = await advance_workflow(ctx.deps.session, ctx.deps.project_id)
+
+    return message if success else f"Error: {message}"
+
+
+@orchestrator_agent.tool
+async def get_scar_history(ctx: RunContext[AgentDependencies], limit: int = 5) -> list[dict]:
+    """
+    Get recent SCAR command execution history.
+
+    Args:
+        ctx: Agent context with dependencies
+        limit: Maximum number of executions to return
+
+    Returns:
+        list[dict]: Recent command executions
+    """
+    if not ctx.deps.project_id:
+        return [{"error": "No active project"}]
+
+    history = await get_command_history(ctx.deps.session, ctx.deps.project_id, limit)
+
+    return [
+        {
+            "command_type": exec.command_type.value,
+            "command_args": exec.command_args,
+            "status": exec.status.value,
+            "started_at": exec.started_at.isoformat() if exec.started_at else None,
+            "completed_at": exec.completed_at.isoformat() if exec.completed_at else None,
+            "output": exec.output[:200] if exec.output else None,  # Truncate for readability
+            "error": exec.error,
+        }
+        for exec in history
+    ]
 
 
 # Convenience function for running the agent
