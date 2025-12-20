@@ -6,8 +6,9 @@ interface ScarActivityFeedProps {
 }
 
 export const ScarActivityFeed: React.FC<ScarActivityFeedProps> = ({ projectId }) => {
-  const { activities, isConnected } = useScarFeed(projectId);
   const [verbosity, setVerbosity] = useState<'low' | 'medium' | 'high'>('medium');
+  const verbosityMap = { low: 1, medium: 2, high: 3 };
+  const { activities, isConnected } = useScarFeed(projectId, verbosityMap[verbosity]);
   const activitiesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,18 +38,22 @@ export const ScarActivityFeed: React.FC<ScarActivityFeedProps> = ({ projectId })
         </span>
       </div>
       <div className="activities">
-        {activities.map((activity) => (
-          <div key={activity.id} className="activity-item">
-            <span className="source" style={{ color: getSourceColor(activity.source) }}>
-              [{activity.source}]
-            </span>
-            <span className="timestamp">
-              {new Date(activity.timestamp).toLocaleTimeString()}
-            </span>
-            <div className="message">{activity.message}</div>
-            {activity.phase && <div className="phase">Phase: {activity.phase}</div>}
-          </div>
-        ))}
+        {activities.length === 0 ? (
+          <div className="empty-state">No SCAR activity yet. Activity will appear here when commands are executed.</div>
+        ) : (
+          activities.map((activity) => (
+            <div key={activity.id} className="activity-item">
+              <span className="source" style={{ color: getSourceColor(activity.source) }}>
+                [{activity.source}]
+              </span>
+              <span className="timestamp">
+                {new Date(activity.timestamp).toLocaleTimeString()}
+              </span>
+              <div className="message">{activity.message}</div>
+              {activity.phase && <div className="phase">Phase: {activity.phase}</div>}
+            </div>
+          ))
+        )}
         <div ref={activitiesEndRef} />
       </div>
     </div>
