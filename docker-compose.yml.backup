@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
       POSTGRES_DB: project_orchestrator
     ports:
-      - "5435:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
     build: .
     container_name: backend
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://orchestrator:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/project_orchestrator
       - REDIS_URL=redis://redis:6379/0
@@ -49,17 +49,17 @@ services:
       - ./src:/app/src
     command: python -m src.main
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: frontend
-  #   ports:
-  #     - "3000:80"
-  #   depends_on:
-  #     - app
-  #   environment:
-  #     - BACKEND_URL=http://backend:8000
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
+    environment:
+      - BACKEND_URL=http://backend:8000
 
 volumes:
   postgres_data:
