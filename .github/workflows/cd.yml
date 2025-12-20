@@ -71,7 +71,7 @@ jobs:
         run: |
           echo "Waiting for API to be healthy..."
           for i in {1..30}; do
-            if curl -f http://localhost:8000/health > /dev/null 2>&1; then
+            if curl -f http://localhost:8001/health > /dev/null 2>&1; then
               echo "API is healthy!"
               break
             fi
@@ -81,7 +81,7 @@ jobs:
 
       - name: Health check
         run: |
-          curl -f http://localhost:8000/health || echo "Health check failed"
+          curl -f http://localhost:8001/health || echo "Health check failed"
 
       - name: Check service status
         working-directory: ${{ env.DEPLOY_DIR }}
