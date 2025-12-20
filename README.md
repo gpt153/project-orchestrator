@@ -12,7 +12,7 @@ See the complete vision document: [`.agents/visions/project-orchestrator.md`](.a
 
 ## Status
 
-🎉 **PRODUCTION-READY** - Core orchestrator (75% complete) + Web Interface (in development)
+🎉 **PRODUCTION-READY** - Core orchestrator (75% complete) + Web Interface (Ready for Deployment!)
 
 ### Implementation Progress
 
@@ -22,7 +22,7 @@ See the complete vision document: [`.agents/visions/project-orchestrator.md`](.a
 - ✅ Phase 4: SCAR Workflow Automation (100%)
 - ✅ Phase 5: Telegram Bot Integration (100%)
 - ✅ Phase 6: GitHub Integration (100%)
-- 🚧 Web Interface: 3-Panel UI (In Development)
+- ✅ Web Interface: 3-Panel UI (Build Complete - Ready for Deployment!)
 - ⏳ Phase 7: End-to-End Workflow (0%)
 - ⏳ Phase 8: Testing and Refinement (0%)
 
@@ -84,7 +84,11 @@ python -m src.main
 
 Visit http://localhost:8000/docs for the API documentation.
 
-### Frontend Web UI (Optional)
+### Frontend Web UI
+
+**Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment guide to po.153.se
+
+**Local Development**:
 
 1. Install Node.js dependencies:
 ```bash
@@ -99,21 +103,39 @@ npm run dev
 
 The web UI will be available at `http://localhost:5173`
 
-### Using Docker
+**Production Build**:
+
+```bash
+cd frontend
+npm run build
+```
+
+The optimized production build will be in `frontend/dist/`
+
+### Using Docker (Recommended)
+
+Start all services including the WebUI:
 
 ```bash
 # Copy and configure environment
 cp .env.example .env
 
-# Start all services
+# Start all services (backend, frontend, database)
 docker-compose up -d
 
 # View logs
-docker-compose logs -f app
+docker-compose logs -f
+
+# Access the application
+# - WebUI: http://localhost:3000
+# - Backend API: http://localhost:8000
+# - API Docs: http://localhost:8000/docs
 
 # Stop services
 docker-compose down
 ```
+
+For production deployment to po.153.se, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## How It Works
 
