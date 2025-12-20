@@ -12,11 +12,52 @@ See the complete vision document: [`.agents/visions/project-orchestrator.md`](.a
 
 ## Status
 
-🚧 **In Development** - Currently in planning phase
+🚧 **In Development** - Currently implementing web interface
 
 ## Quick Start
 
-This project is being built using SCAR (the remote coding agent). Follow along with the development in the Issues tab.
+### Backend API
+
+1. Install Python dependencies (requires Python 3.11+):
+   ```bash
+   pip install -e .
+   ```
+
+2. Set up your environment:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database URL
+   ```
+
+3. Run the backend server:
+   ```bash
+   python -m src.main
+   ```
+
+The API will be available at `http://localhost:8000`
+
+### Frontend Web UI
+
+1. Install Node.js dependencies:
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+The web UI will be available at `http://localhost:5173`
+
+### Features
+
+- **Backend API**: FastAPI-based REST API with WebSocket and SSE support
+- **Web Interface** (In Progress):
+  - Left Panel: Project navigator with tree structure
+  - Middle Panel: Chat interface with @po (no @mention required)
+  - Right Panel: Real-time SCAR activity feed
 
 ## How It Works
 
@@ -44,8 +85,19 @@ Working Code
 ├── visions/           # Non-technical vision documents
 ├── plans/             # Technical implementation plans
 └── commands/          # Custom workflow commands
-docs/                  # Documentation and PRDs
-src/                   # Source code (coming soon)
+src/
+├── api/               # FastAPI endpoints (REST, WebSocket, SSE)
+├── database/          # SQLAlchemy models and connection
+├── services/          # Business logic and service layer
+└── main.py            # FastAPI application entry point
+frontend/
+├── src/
+│   ├── components/    # React components (3-panel layout)
+│   ├── hooks/         # Custom React hooks (WebSocket, SSE)
+│   ├── services/      # API client services
+│   └── types/         # TypeScript type definitions
+└── package.json       # Node.js dependencies
+tests/                 # Pytest tests for backend
 ```
 
 ## Contributing
