@@ -48,8 +48,13 @@ export const ProjectNavigator: React.FC<ProjectNavigatorProps> = ({ onProjectSel
       <ul className="project-list">
         {projects.map((project) => (
           <li key={project.id}>
-            <div onClick={() => toggleProject(project.id)}>
-              {expandedProjects.has(project.id) ? '▼' : '▶'} {project.name}
+            <div className="project-header">
+              <span className="expand-icon" onClick={() => toggleProject(project.id)}>
+                {expandedProjects.has(project.id) ? '▼' : '▶'}
+              </span>
+              <span className="project-name" onClick={() => onProjectSelect(project.id)}>
+                {project.name}
+              </span>
             </div>
             {expandedProjects.has(project.id) && (
               <ul className="issue-list">

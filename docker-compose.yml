@@ -29,6 +29,7 @@ services:
 
   app:
     build: .
+    container_name: backend
     ports:
       - "8000:8000"
     environment:
@@ -47,6 +48,18 @@ services:
     volumes:
       - ./src:/app/src
     command: python -m src.main
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - app
+    environment:
+      - BACKEND_URL=http://backend:8000
 
 volumes:
   postgres_data:
