@@ -48,6 +48,9 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src
+      - /var/run/docker.sock:/var/run/docker.sock
+    group_add:
+      - "108"  # docker group on host
     command: python -m src.main
 
   frontend:

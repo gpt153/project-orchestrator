@@ -32,6 +32,7 @@ from src.services.workflow_orchestrator import (
     get_workflow_state,
     handle_approval_response,
 )
+from src.integrations.docker_commands import DockerCommandHandler
 
 # Configure logging
 logging.basicConfig(
@@ -61,12 +62,20 @@ class OrchestratorTelegramBot:
         """
         self.application = Application.builder().token(token).build()
         self.db_session_maker = db_session_maker
+        self.docker_handler = DockerCommandHandler()
 
         # Register handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         self.application.add_handler(CommandHandler("status", self.status_command))
         self.application.add_handler(CommandHandler("continue", self.continue_command))
+
+        # Docker management commands
+        self.application.add_handler(CommandHandler("docker_status", self.docker_status_wrapper))
+        self.application.add_handler(CommandHandler("docker_logs", self.docker_logs_wrapper))
+        self.application.add_handler(CommandHandler("docker_restart", self.docker_restart_wrapper))
+        self.application.add_handler(CommandHandler("docker_deploy", self.docker_deploy_wrapper))
+
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
         )
@@ -126,12 +135,18 @@ class OrchestratorTelegramBot:
             "/status - Check current project status\n"
             "/continue - Continue to next workflow phase\n"
             "/help - Show this help message\n\n"
+            "**Docker Management:**\n"
+            "/docker_status [project] - Check production container status\n"
+            "/docker_logs [project] [lines] - View container logs\n"
+            "/docker_restart [project] - Restart production containers\n"
+            "/docker_deploy [project] - Deploy workspace to production\n\n"
             "**How it works:**\n"
             "1. 💭 **Brainstorm** - Tell me your idea\n"
             "2. 📝 **Vision** - I'll create a clear vision document\n"
             "3. 🎯 **Plan** - We'll create an implementation plan\n"
             "4. 💻 **Build** - I'll implement the features\n"
-            "5. ✅ **Validate** - We'll test everything\n\n"
+            "5. ✅ **Validate** - We'll test everything\n"
+            "6. 🚀 **Deploy** - Push to production with Docker commands\n\n"
             "Just chat with me naturally, and I'll guide you through each step!"
         )
 
@@ -215,6 +230,11 @@ class OrchestratorTelegramBot:
             context: Handler context
         """
         user_message = update.message.text
+
+        # Check if this is a Docker confirmation response
+        if await self.docker_handler.handle_docker_confirmation(update, context, user_message):
+            return
+
         project_id_str = context.chat_data.get("project_id")
 
         if not project_id_str:
@@ -378,6 +398,43 @@ class OrchestratorTelegramBot:
                 reply_markup=reply_markup,
                 parse_mode="Markdown",
             )
+
+    async def docker_status_wrapper(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Wrapper for /docker_status command - get project from context."""
+        args = context.args
+        project_name = args[0] if args else "project-orchestrator"
+
+        await self.docker_handler.docker_status_command(update, context, project_name)
+
+    async def docker_logs_wrapper(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Wrapper for /docker_logs command - get project and lines from args."""
+        args = context.args
+        project_name = args[0] if args else "project-orchestrator"
+        lines = int(args[1]) if len(args) > 1 else 50
+
+        await self.docker_handler.docker_logs_command(update, context, project_name, lines)
+
+    async def docker_restart_wrapper(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Wrapper for /docker_restart command - get project from context."""
+        args = context.args
+        project_name = args[0] if args else "project-orchestrator"
+
+        await self.docker_handler.docker_restart_command(update, context, project_name)
+
+    async def docker_deploy_wrapper(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Wrapper for /docker_deploy command - get project from context."""
+        args = context.args
+        project_name = args[0] if args else "project-orchestrator"
+
+        await self.docker_handler.docker_deploy_command(update, context, project_name)
 
     def run(self) -> None:
         """Start the bot"""
