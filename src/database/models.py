@@ -286,10 +286,8 @@ class ScarCommandExecution(Base):
         """Default verbosity level (web UI compatibility)"""
         return 2
 
-    @property
-    def metadata(self):
-        """Return empty metadata dict (web UI compatibility)"""
-        return {}
+    # Note: 'metadata' property removed - conflicts with SQLAlchemy reserved name
+    # Web UI should use a different approach if metadata dict is needed
 
     @property
     def created_at(self):
