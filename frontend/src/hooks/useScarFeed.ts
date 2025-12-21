@@ -8,12 +8,12 @@ export interface ScarActivity {
   phase?: string;
 }
 
-export const useScarFeed = (projectId: string) => {
+export const useScarFeed = (projectId: string, verbosity: number = 2) => {
   const [activities, setActivities] = useState<ScarActivity[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/sse/scar/${projectId}`);
+    const eventSource = new EventSource(`/api/sse/scar/${projectId}?verbosity=${verbosity}`);
 
     eventSource.onopen = () => {
       setIsConnected(true);
@@ -33,7 +33,7 @@ export const useScarFeed = (projectId: string) => {
     return () => {
       eventSource.close();
     };
-  }, [projectId]);
+  }, [projectId, verbosity]);
 
   return { activities, isConnected };
 };
