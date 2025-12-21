@@ -50,7 +50,7 @@ npm install
 npm run dev
 ```
 
-The dev server runs on http://localhost:5173 with Vite's hot module replacement.
+The dev server runs on http://localhost:3002 with Vite's hot module replacement.
 
 ## Production Deployment to po.153.se
 

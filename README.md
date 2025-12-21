@@ -324,7 +324,7 @@ See `.env.example` for all available configuration options:
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token
 - `GITHUB_ACCESS_TOKEN`: GitHub personal access token
 - `GITHUB_WEBHOOK_SECRET`: Secret for webhook verification
-- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:5173)
+- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:3002)
 - `SERVE_FRONTEND`: Serve frontend from FastAPI in production
 
 ## Development Workflow
