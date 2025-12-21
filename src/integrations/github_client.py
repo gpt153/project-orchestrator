@@ -236,6 +236,44 @@ class GitHubClient:
 
             return response.json()
 
+    async def get_issues(
+        self,
+        repo: GitHubRepo,
+        state: str = "all",
+        limit: int = 100
+    ) -> list[dict]:
+        """
+        Get issues for a repository.
+
+        Args:
+            repo: Repository information
+            state: Issue state filter: "open", "closed", or "all"
+            limit: Maximum number of issues to return (max 100)
+
+        Returns:
+            list[dict]: List of issue dictionaries from GitHub API
+
+        Raises:
+            httpx.HTTPStatusError: If API request fails
+        """
+        url = f"{self.base_url}/repos/{repo.full_name}/issues"
+        params = {
+            "state": state,
+            "per_page": min(limit, 100),
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url,
+                headers=self._get_headers(),
+                params=params,
+                timeout=10.0
+            )
+            response.raise_for_status()
+
+            logger.info(f"Retrieved {len(response.json())} issues from {repo.full_name} (state={state})")
+            return response.json()
+
     async def create_pull_request(
         self,
         repo: GitHubRepo,

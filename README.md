@@ -82,7 +82,7 @@ alembic upgrade head
 python -m src.main
 ```
 
-Visit http://localhost:8000/docs for the API documentation.
+Visit http://localhost:8000/docs for the API documentation (or http://localhost:8001/docs if using Docker Compose).
 
 ### Frontend Web UI
 
@@ -101,7 +101,7 @@ npm install
 npm run dev
 ```
 
-The web UI will be available at `http://localhost:5173`
+The web UI will be available at `http://localhost:3002`
 
 **Production Build**:
 
@@ -127,9 +127,15 @@ docker-compose up -d
 docker-compose logs -f
 
 # Access the application
-# - WebUI: http://localhost:3000
-# - Backend API: http://localhost:8000
-# - API Docs: http://localhost:8000/docs
+# - WebUI: http://localhost:3002
+# - Backend API: http://localhost:8001
+# - API Docs: http://localhost:8001/docs
+#
+# Port Mapping (Docker):
+# - Backend: 8001 → 8000 (container)
+# - Frontend: 3002 → 80 (container)
+# - PostgreSQL: 5435 → 5432 (container)
+# - Redis: 6379 → 6379 (container)
 
 # Stop services
 docker-compose down
@@ -311,9 +317,22 @@ mypy src/
 
 Once the application is running, visit:
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
+- **Swagger UI**: http://localhost:8000/docs (direct) or http://localhost:8001/docs (Docker)
+- **ReDoc**: http://localhost:8000/redoc (direct) or http://localhost:8001/redoc (Docker)
+- **OpenAPI JSON**: http://localhost:8000/openapi.json (direct) or http://localhost:8001/openapi.json (Docker)
+
+### Port Reference
+
+When using Docker Compose, services are exposed on different host ports:
+
+| Service     | Container Port | Host Port | Access URL                    |
+|-------------|----------------|-----------|-------------------------------|
+| Backend API | 8000           | 8001      | http://localhost:8001         |
+| Frontend    | 80             | 3002      | http://localhost:3002         |
+| PostgreSQL  | 5432           | 5435      | localhost:5435                |
+| Redis       | 6379           | 6379      | localhost:6379                |
+
+When running services directly (not via Docker), use the container ports (8000, 5432, etc.).
 
 ## Environment Variables
 
@@ -324,7 +343,7 @@ See `.env.example` for all available configuration options:
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token
 - `GITHUB_ACCESS_TOKEN`: GitHub personal access token
 - `GITHUB_WEBHOOK_SECRET`: Secret for webhook verification
-- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:5173)
+- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:3002)
 - `SERVE_FRONTEND`: Serve frontend from FastAPI in production
 
 ## Development Workflow
