@@ -37,8 +37,17 @@ The application consists of three main services:
 
 4. **Access the application**:
    - Frontend: http://localhost:3002
-   - Backend API: http://localhost:8000
-   - API Docs: http://localhost:8000/docs
+   - Backend API: http://localhost:8001
+   - API Docs: http://localhost:8001/docs
+
+**Port Mapping (Docker Compose)**:
+
+| Service     | Container Port | Host Port | Access URL                    |
+|-------------|----------------|-----------|-------------------------------|
+| Backend API | 8000           | 8001      | http://localhost:8001         |
+| Frontend    | 80             | 3002      | http://localhost:3002         |
+| PostgreSQL  | 5432           | 5435      | localhost:5435                |
+| Redis       | 6379           | 6379      | localhost:6379                |
 
 ### Frontend Development
 
@@ -204,9 +213,9 @@ sudo certbot renew --dry-run
    Expected output:
    ```
    NAME       SERVICE    STATUS       PORTS
-   backend    app        running      0.0.0.0:8000->8000/tcp
+   backend    app        running      0.0.0.0:8001->8000/tcp
    frontend   frontend   running      0.0.0.0:3002->80/tcp
-   postgres   postgres   running      0.0.0.0:5432->5432/tcp
+   postgres   postgres   running      0.0.0.0:5435->5432/tcp
    redis      redis      running      0.0.0.0:6379->6379/tcp
    ```
 

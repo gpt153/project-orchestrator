@@ -15,6 +15,24 @@ The WebUI has been successfully enhanced from "three empty windows" to a fully f
 
 ## 🚀 Quick Start
 
+### Active Ports (Exposed to Host)
+
+| Service     | Container Port | Host Port | Status     | Purpose                             |
+|-------------|----------------|-----------|------------|-------------------------------------|
+| Backend API | 8000           | 8001      | ✅ Running | FastAPI backend (Python)            |
+| Frontend    | 80             | 3002      | ✅ Running | Web UI (Nginx serving static files) |
+| PostgreSQL  | 5432           | 5435      | ✅ Healthy | Database                            |
+| Redis       | 6379           | 6379      | ✅ Healthy | Cache/queue                         |
+
+### Access URLs
+
+- **Backend API**: http://localhost:8001
+- **Frontend UI**: http://localhost:3002
+- **PostgreSQL**: localhost:5435 (user: orchestrator, db: project_orchestrator)
+- **Redis**: localhost:6379
+
+---
+
 ### 1. Seed the Database
 
 First, populate the database with sample projects:
@@ -47,7 +65,7 @@ cd /worktrees/project-orchestrator/issue-13
 uv run python -m src.main
 ```
 
-The API will be available at `http://localhost:8000`.
+The API will be available at `http://localhost:8001` (or `http://localhost:8000` if running directly without Docker).
 
 ### 4. Access the WebUI
 
@@ -216,6 +234,10 @@ echo $DATABASE_URL
 
 **Fix:** Check backend is running:
 ```bash
+# If using Docker Compose
+curl http://localhost:8001/api/projects
+
+# If running directly
 curl http://localhost:8000/api/projects
 ```
 
