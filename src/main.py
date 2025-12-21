@@ -116,11 +116,13 @@ try:
     from src.api.documents import router as documents_router
     from src.api.websocket import router as websocket_router
     from src.api.sse import router as sse_router
+    from src.api.github_issues import router as github_issues_router
 
     app.include_router(projects_router, prefix="/api", tags=["Projects"])
     app.include_router(documents_router, prefix="/api", tags=["Documents"])
     app.include_router(websocket_router, prefix="/api", tags=["WebSocket"])
     app.include_router(sse_router, prefix="/api", tags=["SSE"])
+    app.include_router(github_issues_router, prefix="/api", tags=["GitHub Issues"])
     logger.info("Web UI routers registered")
 except ImportError as e:
     logger.warning(f"Web UI routers not available: {e}")
