@@ -25,7 +25,10 @@ jobs:
       - name: Update deployment files
         run: |
           mkdir -p ${{ env.DEPLOY_DIR }}
+          # Copy all files including hidden ones (like .scar/)
+          shopt -s dotglob
           cp -r ./* ${{ env.DEPLOY_DIR }}/
+          shopt -u dotglob
           cd ${{ env.DEPLOY_DIR }}
 
       - name: Build Docker image locally
