@@ -1,10 +1,10 @@
 """
 REST API router for document retrieval (vision docs, plans).
 """
+import json
 import logging
 from typing import List
 from uuid import UUID
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import PlainTextResponse
@@ -55,7 +55,6 @@ async def get_vision_document(
 
         # Convert JSONB vision document to markdown
         # For now, return as JSON string; can be enhanced to convert to markdown
-        import json
         vision_markdown = json.dumps(project.vision_document, indent=2)
 
         return vision_markdown

@@ -1,12 +1,13 @@
 """
 Server-Sent Events endpoint for streaming SCAR activity feed.
 """
-import logging
 import asyncio
 import json
+import logging
+from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Query
 from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,7 +70,6 @@ async def sse_scar_activity(
                         # Send heartbeat if it's been a while
                         current_time = asyncio.get_event_loop().time()
                         if current_time - last_heartbeat >= heartbeat_interval:
-                            from datetime import datetime
                             yield {
                                 "event": "heartbeat",
                                 "data": json.dumps({

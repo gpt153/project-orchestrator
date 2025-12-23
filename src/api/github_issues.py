@@ -6,12 +6,12 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.connection import get_session
 from src.database.models import Project
 from src.integrations.github_client import GitHubClient, GitHubRepo
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 

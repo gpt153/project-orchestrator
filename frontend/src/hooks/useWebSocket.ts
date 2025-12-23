@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, WebSocketMessage } from '@/types/message';
-import { api } from '@/services/api';
 
 export const useWebSocket = (projectId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
