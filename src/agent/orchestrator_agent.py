@@ -5,7 +5,6 @@ This module implements the conversational AI agent that orchestrates
 software development workflows for non-technical users.
 """
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic_ai import Agent, RunContext
@@ -20,8 +19,8 @@ from src.agent.tools import (
     update_project_vision,
 )
 from src.database.models import MessageRole, ProjectStatus
-from src.services.workflow_orchestrator import advance_workflow, get_workflow_state
 from src.services.scar_executor import get_command_history
+from src.services.workflow_orchestrator import advance_workflow, get_workflow_state
 
 # Initialize the PydanticAI agent
 # Note: Uses ANTHROPIC_API_KEY environment variable

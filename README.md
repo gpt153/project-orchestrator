@@ -331,15 +331,47 @@ alembic downgrade -1
 
 ### Code Quality
 
+We use pre-commit hooks to ensure code quality. Install them once:
+
 ```bash
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+```
+
+Now code will be automatically checked before each commit. You can also run checks manually:
+
+```bash
+# Run all pre-commit checks
+pre-commit run --all-files
+
 # Format code
 black src/ tests/
 
-# Lint code
-ruff check src/ tests/
+# Lint code (with auto-fix)
+ruff check --fix src/ tests/
 
 # Type checking
 mypy src/
+```
+
+### Test Database Configuration
+
+Tests use PostgreSQL with different credentials than production. The default password is `test_password` to match CI.
+
+For local development with a different password, set the environment variable:
+
+```bash
+export TEST_DATABASE_URL="postgresql+asyncpg://orchestrator:your_password@localhost:5432/project_orchestrator_test"
+```
+
+Or create a local PostgreSQL user matching the CI configuration:
+
+```bash
+# Create test database and user
+createdb project_orchestrator_test
+psql -c "CREATE USER orchestrator WITH PASSWORD 'test_password';"
+psql -c "GRANT ALL PRIVILEGES ON DATABASE project_orchestrator_test TO orchestrator;"
 ```
 
 ## API Documentation

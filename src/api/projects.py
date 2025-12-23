@@ -10,12 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.connection import get_session
 from src.services.project_service import (
-    get_all_projects,
-    get_project_with_stats,
-    create_project,
-    get_conversation_history,
     ProjectCreate,
-    ProjectResponse,
+    create_project,
+    get_all_projects,
+    get_conversation_history,
+    get_project_with_stats,
 )
 
 logger = logging.getLogger(__name__)

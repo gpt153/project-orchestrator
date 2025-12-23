@@ -21,7 +21,12 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "test_api_key_for_testing")
 
 
 # Configure test database URL
-TEST_DATABASE_URL = "postgresql+asyncpg://orchestrator:dev_password@localhost:5432/project_orchestrator_test"
+# Use environment variable to allow flexibility between CI and local dev
+# CI uses test_password, local dev can override with TEST_DATABASE_URL env var
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    "postgresql+asyncpg://orchestrator:test_password@localhost:5432/project_orchestrator_test",
+)
 
 
 @pytest.fixture(scope="session")
