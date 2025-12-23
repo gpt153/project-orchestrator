@@ -9,17 +9,18 @@ Usage:
     python -m src.scripts.import_github_projects --user gpt153
     python -m src.scripts.import_github_projects --repos "owner/repo1,owner/repo2"
 """
-import asyncio
 import argparse
+import asyncio
 import logging
 from typing import List, Optional
 
+import httpx
 from sqlalchemy import select
 
+from src.config import settings
 from src.database.connection import async_session_maker
 from src.database.models import Project, ProjectStatus
 from src.integrations.github_client import GitHubClient, GitHubRepo
-from src.config import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -66,17 +67,16 @@ async def import_repos_from_list(repo_urls: List[str]) -> int:
 
                 # Fetch repo details from GitHub to get description
                 try:
-                    async with github._get_headers() as headers:
-                        import httpx
-                        async with httpx.AsyncClient() as client:
-                            response = await client.get(
-                                f"https://api.github.com/repos/{repo.full_name}",
-                                headers=github._get_headers(),
-                                timeout=10.0
-                            )
-                            if response.status_code == 200:
-                                repo_data = response.json()
-                                description = repo_data.get("description", "")
+                    headers = github._get_headers()
+                    async with httpx.AsyncClient() as client:
+                        response = await client.get(
+                            f"https://api.github.com/repos/{repo.full_name}",
+                            headers=headers,
+                            timeout=10.0
+                        )
+                        if response.status_code == 200:
+                            repo_data = response.json()
+                            description = repo_data.get("description", "")
                             else:
                                 description = ""
                                 logger.warning(f"Could not fetch details for {repo.full_name}")
@@ -118,7 +118,6 @@ async def import_repos_from_user(username: str) -> int:
     logger.info(f"Fetching repositories for user: {username}")
 
     try:
-        import httpx
         url = f"https://api.github.com/users/{username}/repos"
         params = {"per_page": 100, "type": "all"}
 
@@ -158,7 +157,6 @@ async def import_repos_from_org(org_name: str) -> int:
     logger.info(f"Fetching repositories for organization: {org_name}")
 
     try:
-        import httpx
         url = f"https://api.github.com/orgs/{org_name}/repos"
         params = {"per_page": 100, "type": "all"}
 

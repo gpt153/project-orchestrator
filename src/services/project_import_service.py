@@ -10,6 +10,7 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -105,7 +106,6 @@ async def import_from_config(session: AsyncSession, config: Dict) -> int:
                     github = GitHubClient()
                     repo = GitHubRepo.from_url(repo_url)
 
-                    import httpx
                     async with httpx.AsyncClient() as client:
                         response = await client.get(
                             f"https://api.github.com/repos/{repo.full_name}",
@@ -198,7 +198,6 @@ async def import_from_user(session: AsyncSession, username: str) -> int:
     logger.info(f"Fetching repositories for user: {username}")
 
     try:
-        import httpx
         url = f"https://api.github.com/users/{username}/repos"
         params = {"per_page": 100, "type": "all"}
 
@@ -254,7 +253,6 @@ async def import_from_org(session: AsyncSession, org_name: str) -> int:
     logger.info(f"Fetching repositories for organization: {org_name}")
 
     try:
-        import httpx
         url = f"https://api.github.com/orgs/{org_name}/repos"
         params = {"per_page": 100, "type": "all"}
 
