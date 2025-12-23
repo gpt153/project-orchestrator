@@ -149,11 +149,8 @@ class ConversationMessage(Base):
     # Relationships
     project = relationship("Project", back_populates="conversation_messages")
 
-    # Alias for backward compatibility with web UI
-    @property
-    def metadata(self):
-        """Alias for message_metadata (web UI compatibility)"""
-        return self.message_metadata
+    # Note: 'metadata' property removed - conflicts with SQLAlchemy reserved name
+    # Web UI should use 'message_metadata' field directly
 
     @property
     def created_at(self):
@@ -289,10 +286,8 @@ class ScarCommandExecution(Base):
         """Default verbosity level (web UI compatibility)"""
         return 2
 
-    @property
-    def metadata(self):
-        """Return empty metadata dict (web UI compatibility)"""
-        return {}
+    # Note: 'metadata' property removed - conflicts with SQLAlchemy reserved name
+    # Web UI should use a different approach if metadata dict is needed
 
     @property
     def created_at(self):

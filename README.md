@@ -16,7 +16,7 @@ See the complete vision document: [`.agents/visions/project-orchestrator.md`](.a
 
 ## Status
 
-🎉 **PRODUCTION-READY** - Core orchestrator (75% complete) + Web Interface (in development)
+🎉 **PRODUCTION-READY** - Core orchestrator (75% complete) + Web Interface (Ready for Deployment!)
 
 ### Implementation Progress
 
@@ -26,7 +26,7 @@ See the complete vision document: [`.agents/visions/project-orchestrator.md`](.a
 - ✅ Phase 4: SCAR Workflow Automation (100%)
 - ✅ Phase 5: Telegram Bot Integration (100%)
 - ✅ Phase 6: GitHub Integration (100%)
-- 🚧 Web Interface: 3-Panel UI (In Development)
+- ✅ Web Interface: 3-Panel UI (Build Complete - Ready for Deployment!)
 - ⏳ Phase 7: End-to-End Workflow (0%)
 - ⏳ Phase 8: Testing and Refinement (0%)
 
@@ -86,9 +86,13 @@ alembic upgrade head
 python -m src.main
 ```
 
-Visit http://localhost:8000/docs for the API documentation.
+Visit http://localhost:8000/docs for the API documentation (or http://localhost:8001/docs if using Docker Compose).
 
-### Frontend Web UI (Optional)
+### Frontend Web UI
+
+**Production Deployment**: See [DEPLOYMENT.md](DEPLOYMENT.md) for full deployment guide to po.153.se
+
+**Local Development**:
 
 1. Install Node.js dependencies:
 ```bash
@@ -101,19 +105,41 @@ npm install
 npm run dev
 ```
 
-The web UI will be available at `http://localhost:5173`
+The web UI will be available at `http://localhost:3002`
 
-### Using Docker
+**Production Build**:
+
+```bash
+cd frontend
+npm run build
+```
+
+The optimized production build will be in `frontend/dist/`
+
+### Using Docker (Recommended)
+
+Start all services including the WebUI:
 
 ```bash
 # Copy and configure environment
 cp .env.example .env
 
-# Start all services
+# Start all services (backend, frontend, database)
 docker-compose up -d
 
 # View logs
-docker-compose logs -f app
+docker-compose logs -f
+
+# Access the application
+# - WebUI: http://localhost:3002
+# - Backend API: http://localhost:8001
+# - API Docs: http://localhost:8001/docs
+#
+# Port Mapping (Docker):
+# - Backend: 8001 → 8000 (container)
+# - Frontend: 3002 → 80 (container)
+# - PostgreSQL: 5435 → 5432 (container)
+# - Redis: 6379 → 6379 (container)
 
 # Stop services
 docker-compose down
@@ -129,6 +155,7 @@ Every push and PR is automatically tested:
 - ✅ Full test suite with PostgreSQL/Redis services
 - ✅ Code coverage reporting (60% minimum)
 - ✅ Docker build verification
+- ✅ Frontend build verification
 
 ### Continuous Deployment (CD)
 Automatic deployment on main branch merge:
@@ -141,7 +168,9 @@ Automatic deployment on main branch merge:
 
 **Image Registry**: `ghcr.io/gpt153/project-orchestrator`
 
-See [CI/CD Setup Guide](docs/CICD_SETUP.md) for configuration details.
+**Documentation**:
+- [CI/CD Setup Guide](docs/CICD_SETUP.md) - Complete pipeline configuration
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment to po.153.se
 
 ## How It Works
 
@@ -317,9 +346,102 @@ mypy src/
 
 Once the application is running, visit:
 
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **OpenAPI JSON**: http://localhost:8000/openapi.json
+- **Swagger UI**: http://localhost:8000/docs (direct) or http://localhost:8001/docs (Docker)
+- **ReDoc**: http://localhost:8000/redoc (direct) or http://localhost:8001/redoc (Docker)
+- **OpenAPI JSON**: http://localhost:8000/openapi.json (direct) or http://localhost:8001/openapi.json (Docker)
+
+### Port Reference
+
+When using Docker Compose, services are exposed on different host ports:
+
+| Service     | Container Port | Host Port | Access URL                    |
+|-------------|----------------|-----------|-------------------------------|
+| Backend API | 8000           | 8001      | http://localhost:8001         |
+| Frontend    | 80             | 3002      | http://localhost:3002         |
+| PostgreSQL  | 5432           | 5435      | localhost:5435                |
+| Redis       | 6379           | 6379      | localhost:6379                |
+
+When running services directly (not via Docker), use the container ports (8000, 5432, etc.).
+
+## Pre-loading SCAR Projects
+
+The application can automatically import GitHub repositories as projects when the container starts. This ensures your WebUI is populated with projects immediately.
+
+### Configuration Methods
+
+#### Method 1: Configuration File (Recommended)
+
+Create `.scar/projects.json` with your projects:
+
+```json
+{
+  "version": "1.0",
+  "projects": [
+    {
+      "name": "Project Orchestrator",
+      "github_repo": "gpt153/project-orchestrator",
+      "description": "AI agent for project management",
+      "telegram_chat_id": null
+    },
+    {
+      "name": "My Project",
+      "github_repo": "owner/repo-name",
+      "description": "Optional description",
+      "telegram_chat_id": -1001234567890
+    }
+  ]
+}
+```
+
+See `.scar/projects.json.example` for a full example.
+
+#### Method 2: Environment Variables
+
+Set one or more of these environment variables:
+
+```bash
+# Import specific repositories (comma-separated)
+SCAR_IMPORT_REPOS="owner/repo1,owner/repo2,owner/repo3"
+
+# Import all repos from a GitHub user
+SCAR_IMPORT_USER="your-github-username"
+
+# Import all repos from a GitHub organization
+SCAR_IMPORT_ORG="your-org-name"
+```
+
+#### Method 3: Multiple Sources
+
+You can combine multiple sources. The import process will:
+1. Load projects from `.scar/projects.json` (if it exists)
+2. Load projects from `SCAR_IMPORT_REPOS` (if set)
+3. Load projects from `SCAR_IMPORT_USER` (if set)
+4. Load projects from `SCAR_IMPORT_ORG` (if set)
+
+Duplicate projects (same GitHub URL) are automatically skipped.
+
+### Disabling Auto-Import
+
+To disable automatic import on startup:
+
+```bash
+SCAR_AUTO_IMPORT=false
+```
+
+### Manual Import
+
+You can also manually import projects using the command-line script:
+
+```bash
+# Import specific repos
+python -m src.scripts.import_github_projects --repos "owner/repo1,owner/repo2"
+
+# Import all repos from a user
+python -m src.scripts.import_github_projects --user your-username
+
+# Import all repos from an org
+python -m src.scripts.import_github_projects --org your-org-name
+```
 
 ## Environment Variables
 
@@ -330,8 +452,13 @@ See `.env.example` for all available configuration options:
 - `TELEGRAM_BOT_TOKEN`: Telegram bot token
 - `GITHUB_ACCESS_TOKEN`: GitHub personal access token
 - `GITHUB_WEBHOOK_SECRET`: Secret for webhook verification
-- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:5173)
+- `FRONTEND_URL`: Frontend CORS origin (default: http://localhost:3002)
 - `SERVE_FRONTEND`: Serve frontend from FastAPI in production
+- `SCAR_AUTO_IMPORT`: Enable/disable auto-import on startup (default: true)
+- `SCAR_IMPORT_REPOS`: Comma-separated list of repos to import
+- `SCAR_IMPORT_USER`: GitHub username to import all repos from
+- `SCAR_IMPORT_ORG`: GitHub org to import all repos from
+- `SCAR_PROJECTS_CONFIG`: Path to projects config file (default: .scar/projects.json)
 
 ## Development Workflow
 

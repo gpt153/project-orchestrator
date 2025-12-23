@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ProjectNavigator } from '@/components/LeftPanel/ProjectNavigator';
 import { ChatInterface } from '@/components/MiddlePanel/ChatInterface';

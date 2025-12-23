@@ -1,13 +1,41 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, WebSocketMessage } from '@/types/message';
+import { api } from '@/services/api';
 
 export const useWebSocket = (projectId: string) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Load conversation history on mount
   useEffect(() => {
-    const wsUrl = `ws://localhost:8000/api/ws/chat/${projectId}`;
+    const loadHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const response = await fetch(`/api/projects/${projectId}/messages`);
+        if (response.ok) {
+          const history = await response.json();
+          setMessages(history);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadHistory();
+  }, [projectId]);
+
+  // Set up WebSocket connection
+  useEffect(() => {
+    // Determine WebSocket URL based on environment
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/api/ws/chat/${projectId}`;
+
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
@@ -18,7 +46,12 @@ export const useWebSocket = (projectId: string) => {
     ws.onmessage = (event) => {
       const wsMessage: WebSocketMessage = JSON.parse(event.data);
       if (wsMessage.type === 'chat') {
-        setMessages((prev) => [...prev, wsMessage.data as ChatMessage]);
+        const chatMessage = wsMessage.data as ChatMessage;
+        setMessages((prev) => [...prev, chatMessage]);
+        // Turn off typing indicator when we receive a message
+        if (chatMessage.role === 'assistant') {
+          setIsTyping(false);
+        }
       }
     };
 
@@ -40,9 +73,11 @@ export const useWebSocket = (projectId: string) => {
 
   const sendMessage = (content: string) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Show typing indicator when user sends a message
+      setIsTyping(true);
       wsRef.current.send(JSON.stringify({ content }));
     }
   };
 
-  return { messages, isConnected, sendMessage };
+  return { messages, isConnected, sendMessage, isLoadingHistory, isTyping };
 };

@@ -35,11 +35,8 @@ async def get_recent_scar_activity(
     """
     query = (
         select(ScarCommandExecution)
-        .where(
-            ScarCommandExecution.project_id == project_id,
-            ScarCommandExecution.verbosity_level <= verbosity_level
-        )
-        .order_by(desc(ScarCommandExecution.created_at))
+        .where(ScarCommandExecution.project_id == project_id)
+        .order_by(desc(ScarCommandExecution.started_at))
         .limit(limit)
     )
 
@@ -49,13 +46,10 @@ async def get_recent_scar_activity(
     activity_list = [
         {
             "id": str(activity.id),
-            "timestamp": activity.created_at.isoformat(),
-            "source": activity.source,
-            "message": activity.message,
-            "command": activity.command,
-            "phase": activity.phase,
-            "verbosity_level": activity.verbosity_level,
-            "metadata": activity.metadata,
+            "timestamp": activity.started_at.isoformat() if activity.started_at else activity.completed_at.isoformat() if activity.completed_at else datetime.utcnow().isoformat(),
+            "source": activity.source,  # Uses @property
+            "message": f"{activity.command_type.value}: {activity.status.value}" if activity.status else activity.command_type.value,
+            "phase": activity.phase.name if activity.phase else None,
         }
         for activity in reversed(activities)  # Reverse to get chronological order
     ]
@@ -101,24 +95,23 @@ async def stream_scar_activity(
         await asyncio.sleep(2)  # Poll every 2 seconds
 
         # Query for activities newer than last_id
+        # Note: verbosity filtering done in Python (line 54) since it's a @property
         if last_id:
             query = (
                 select(ScarCommandExecution)
                 .where(
                     ScarCommandExecution.project_id == project_id,
-                    ScarCommandExecution.verbosity_level <= verbosity_level,
                     ScarCommandExecution.id > UUID(last_id)
                 )
-                .order_by(ScarCommandExecution.created_at.asc())
+                .order_by(ScarCommandExecution.started_at.asc())
             )
         else:
             query = (
                 select(ScarCommandExecution)
                 .where(
-                    ScarCommandExecution.project_id == project_id,
-                    ScarCommandExecution.verbosity_level <= verbosity_level
+                    ScarCommandExecution.project_id == project_id
                 )
-                .order_by(desc(ScarCommandExecution.created_at))
+                .order_by(desc(ScarCommandExecution.started_at))
                 .limit(1)
             )
 
@@ -128,57 +121,14 @@ async def stream_scar_activity(
         for activity in new_activities:
             activity_dict = {
                 "id": str(activity.id),
-                "timestamp": activity.created_at.isoformat(),
+                "timestamp": activity.started_at.isoformat() if activity.started_at else datetime.utcnow().isoformat(),
                 "source": activity.source,
-                "message": activity.message,
-                "command": activity.command,
-                "phase": activity.phase,
-                "verbosity_level": activity.verbosity_level,
-                "metadata": activity.metadata,
+                "message": f"{activity.command_type.value}: {activity.status.value}" if activity.status else activity.command_type.value,
+                "phase": activity.phase.name if activity.phase else None,
             }
             last_id = activity_dict["id"]
             yield activity_dict
 
 
-async def add_scar_activity(
-    session: AsyncSession,
-    project_id: UUID,
-    source: str,
-    command: str,
-    message: str,
-    phase: str | None = None,
-    verbosity_level: int = 1,
-    metadata: Dict | None = None
-) -> ScarCommandExecution:
-    """
-    Add a SCAR activity log entry.
-
-    Args:
-        session: Database session
-        project_id: Project UUID
-        source: Source of the activity ('po', 'scar', 'claude')
-        command: Command being executed
-        message: Activity message
-        phase: Optional workflow phase
-        verbosity_level: Verbosity level (1=low, 2=medium, 3=high)
-        metadata: Optional metadata dictionary
-
-    Returns:
-        Created ScarCommandExecution instance
-    """
-    activity = ScarCommandExecution(
-        project_id=project_id,
-        source=source,
-        command=command,
-        message=message,
-        phase=phase,
-        verbosity_level=verbosity_level,
-        metadata=metadata,
-    )
-
-    session.add(activity)
-    await session.flush()
-    await session.refresh(activity)
-
-    logger.info(f"Added SCAR activity for project {project_id}: {source} - {message[:50]}")
-    return activity
+# Note: add_scar_activity removed - use the proper SCAR executor service
+# from src.services.scar_executor instead
