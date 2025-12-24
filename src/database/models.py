@@ -10,6 +10,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import (
+    BigInteger,
     Column,
     DateTime,
     Enum,
@@ -103,7 +104,7 @@ class Project(Base):
     name = Column(String(255), nullable=True)
     description = Column(Text, nullable=True)
     github_repo_url = Column(String(500), nullable=True)
-    telegram_chat_id = Column(Integer, nullable=True)
+    telegram_chat_id = Column(BigInteger, nullable=True)
     github_issue_number = Column(Integer, nullable=True)
     status = Column(Enum(ProjectStatus), nullable=False, default=ProjectStatus.BRAINSTORMING)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
