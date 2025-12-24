@@ -74,6 +74,7 @@ async def test_advance_workflow_creates_phase(db_session):
 
     # Check that phase was created
     from sqlalchemy import select
+
     from src.database.models import WorkflowPhase
 
     result = await db_session.execute(
@@ -106,9 +107,7 @@ async def test_handle_approval_response_approved(db_session):
         summary="Review vision document",
     )
 
-    gate = await create_approval_gate(
-        db_session, project.id, GateType.VISION_DOC, request
-    )
+    gate = await create_approval_gate(db_session, project.id, GateType.VISION_DOC, request)
 
     # Handle approval
     success, message = await handle_approval_response(
@@ -145,9 +144,7 @@ async def test_handle_approval_response_rejected(db_session):
         summary="Review vision document",
     )
 
-    gate = await create_approval_gate(
-        db_session, project.id, GateType.VISION_DOC, request
-    )
+    gate = await create_approval_gate(db_session, project.id, GateType.VISION_DOC, request)
 
     # Handle rejection
     success, message = await handle_approval_response(

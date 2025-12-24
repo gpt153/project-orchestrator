@@ -7,8 +7,7 @@ workflow phases, approval gates, and SCAR command executions.
 
 import enum
 from datetime import datetime
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from sqlalchemy import (
     Column,
@@ -19,7 +18,8 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -295,4 +295,6 @@ class ScarCommandExecution(Base):
         return self.started_at or datetime.utcnow()
 
     def __repr__(self) -> str:
-        return f"<ScarCommandExecution(id={self.id}, type={self.command_type}, status={self.status})>"
+        return (
+            f"<ScarCommandExecution(id={self.id}, type={self.command_type}, status={self.status})>"
+        )

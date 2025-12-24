@@ -1,6 +1,7 @@
 """
 REST API router for project and issue data endpoints.
 """
+
 import logging
 from typing import List
 from uuid import UUID
@@ -10,12 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.connection import get_session
 from src.services.project_service import (
-    get_all_projects,
-    get_project_with_stats,
-    create_project,
-    get_conversation_history,
     ProjectCreate,
-    ProjectResponse,
+    create_project,
+    get_all_projects,
+    get_conversation_history,
+    get_project_with_stats,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,10 +41,7 @@ async def list_projects(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/projects/{project_id}", response_model=dict)
-async def get_project(
-    project_id: UUID,
-    session: AsyncSession = Depends(get_session)
-):
+async def get_project(project_id: UUID, session: AsyncSession = Depends(get_session)):
     """
     Get a single project with detailed statistics.
 
@@ -61,8 +58,7 @@ async def get_project(
         project = await get_project_with_stats(session, project_id)
         if not project:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Project {project_id} not found"
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Project {project_id} not found"
             )
         return project
     except HTTPException:
@@ -70,15 +66,13 @@ async def get_project(
     except Exception as e:
         logger.error(f"Error retrieving project {project_id}: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve project"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve project"
         )
 
 
 @router.post("/projects", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_new_project(
-    project_data: ProjectCreate,
-    session: AsyncSession = Depends(get_session)
+    project_data: ProjectCreate, session: AsyncSession = Depends(get_session)
 ):
     """
     Create a new project.
@@ -94,9 +88,7 @@ async def create_new_project(
     """
     try:
         project = await create_project(
-            session,
-            name=project_data.name,
-            description=project_data.description
+            session, name=project_data.name, description=project_data.description
         )
 
         return {
@@ -110,16 +102,13 @@ async def create_new_project(
     except Exception as e:
         logger.error(f"Error creating project: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create project"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create project"
         )
 
 
 @router.get("/projects/{project_id}/messages", response_model=List[dict])
 async def get_project_messages(
-    project_id: UUID,
-    limit: int = 100,
-    session: AsyncSession = Depends(get_session)
+    project_id: UUID, limit: int = 100, session: AsyncSession = Depends(get_session)
 ):
     """
     Get conversation history for a project.
@@ -140,6 +129,5 @@ async def get_project_messages(
     except Exception as e:
         logger.error(f"Error retrieving messages for project {project_id}: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve messages"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to retrieve messages"
         )

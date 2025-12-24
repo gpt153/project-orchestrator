@@ -11,12 +11,11 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import (
-    CommandType,
     GateStatus,
     GateType,
     PhaseStatus,
@@ -26,10 +25,8 @@ from src.database.models import (
 )
 from src.services.approval_gate import ApprovalRequest, create_approval_gate
 from src.services.scar_executor import (
-    CommandResult,
     ScarCommand,
     execute_scar_command,
-    get_last_successful_command,
 )
 
 
@@ -96,9 +93,7 @@ WORKFLOW_PHASES = [
 ]
 
 
-async def get_workflow_state(
-    session: AsyncSession, project_id: UUID
-) -> WorkflowState:
+async def get_workflow_state(session: AsyncSession, project_id: UUID) -> WorkflowState:
     """
     Get the current workflow state for a project.
 
@@ -189,9 +184,7 @@ async def get_workflow_state(
     )
 
 
-async def advance_workflow(
-    session: AsyncSession, project_id: UUID
-) -> tuple[bool, str]:
+async def advance_workflow(session: AsyncSession, project_id: UUID) -> tuple[bool, str]:
     """
     Advance the workflow to the next phase.
 
@@ -205,7 +198,7 @@ async def advance_workflow(
         tuple: (success, message) - success flag and status message
     """
     # Get current state
-    state = await get_workflow_state(session, project_id)
+    await get_workflow_state(session, project_id)
 
     # Get project
     result = await session.execute(select(Project).where(Project.id == project_id))
@@ -225,9 +218,7 @@ async def advance_workflow(
     next_phase_number = (current_phase.phase_number + 1) if current_phase else 1
 
     # Find next phase configuration
-    next_phase_config = next(
-        (p for p in WORKFLOW_PHASES if p.number == next_phase_number), None
-    )
+    next_phase_config = next((p for p in WORKFLOW_PHASES if p.number == next_phase_number), None)
 
     if not next_phase_config:
         # Workflow complete
@@ -241,7 +232,9 @@ async def advance_workflow(
         phase_number=next_phase_config.number,
         name=next_phase_config.name,
         description=next_phase_config.description,
-        scar_command=next_phase_config.scar_command.value if next_phase_config.scar_command else None,
+        scar_command=(
+            next_phase_config.scar_command.value if next_phase_config.scar_command else None
+        ),
         status=PhaseStatus.PENDING,
     )
     session.add(workflow_phase)
@@ -317,10 +310,9 @@ async def handle_approval_response(
     Returns:
         tuple: (success, message) - success flag and status message
     """
-    from src.services.approval_gate import approve_gate, reject_gate
-
     # Get the approval gate to find project
     from src.database.models import ApprovalGate
+    from src.services.approval_gate import approve_gate, reject_gate
 
     result = await session.execute(select(ApprovalGate).where(ApprovalGate.id == gate_id))
     gate = result.scalar_one_or_none()

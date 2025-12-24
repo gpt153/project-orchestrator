@@ -9,15 +9,15 @@ Usage:
     python -m src.scripts.import_github_projects --user gpt153
     python -m src.scripts.import_github_projects --repos "owner/repo1,owner/repo2"
 """
+
 import argparse
 import asyncio
 import logging
-from typing import List, Optional
+from typing import List
 
 import httpx
 from sqlalchemy import select
 
-from src.config import settings
 from src.database.connection import async_session_maker
 from src.database.models import Project, ProjectStatus
 from src.integrations.github_client import GitHubClient, GitHubRepo
@@ -72,14 +72,14 @@ async def import_repos_from_list(repo_urls: List[str]) -> int:
                         response = await client.get(
                             f"https://api.github.com/repos/{repo.full_name}",
                             headers=headers,
-                            timeout=10.0
+                            timeout=10.0,
                         )
                         if response.status_code == 200:
                             repo_data = response.json()
                             description = repo_data.get("description", "")
-                            else:
-                                description = ""
-                                logger.warning(f"Could not fetch details for {repo.full_name}")
+                        else:
+                            description = ""
+                            logger.warning(f"Could not fetch details for {repo.full_name}")
                 except Exception as e:
                     logger.warning(f"Could not fetch details for {repo.full_name}: {e}")
                     description = ""
@@ -123,10 +123,7 @@ async def import_repos_from_user(username: str) -> int:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url,
-                headers=github._get_headers(),
-                params=params,
-                timeout=30.0
+                url, headers=github._get_headers(), params=params, timeout=30.0
             )
             response.raise_for_status()
             repos = response.json()
@@ -162,10 +159,7 @@ async def import_repos_from_org(org_name: str) -> int:
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                url,
-                headers=github._get_headers(),
-                params=params,
-                timeout=30.0
+                url, headers=github._get_headers(), params=params, timeout=30.0
             )
             response.raise_for_status()
             repos = response.json()
@@ -187,20 +181,10 @@ async def main():
     parser = argparse.ArgumentParser(
         description="Import GitHub repositories as Projects in the database"
     )
+    parser.add_argument("--user", type=str, help="Import all repositories for a GitHub user")
+    parser.add_argument("--org", type=str, help="Import all repositories for a GitHub organization")
     parser.add_argument(
-        "--user",
-        type=str,
-        help="Import all repositories for a GitHub user"
-    )
-    parser.add_argument(
-        "--org",
-        type=str,
-        help="Import all repositories for a GitHub organization"
-    )
-    parser.add_argument(
-        "--repos",
-        type=str,
-        help='Comma-separated list of repo URLs or "owner/name" strings'
+        "--repos", type=str, help='Comma-separated list of repo URLs or "owner/name" strings'
     )
 
     args = parser.parse_args()
