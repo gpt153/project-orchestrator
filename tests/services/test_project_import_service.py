@@ -74,7 +74,7 @@ class TestImportFromConfig:
     """Tests for import_from_config function"""
 
     @pytest.mark.asyncio
-    async def test_import_new_projects(self, async_session):
+    async def test_import_new_projects(self, test_session):
         """Test importing new projects from config"""
         config = {
             "projects": [
@@ -87,12 +87,12 @@ class TestImportFromConfig:
             ]
         }
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 2
 
         # Verify projects were created
-        result = await async_session.execute(select(Project))
+        result = await test_session.execute(select(Project))
         projects = result.scalars().all()
 
         assert len(projects) == 2
@@ -100,7 +100,7 @@ class TestImportFromConfig:
         assert any(p.name == "Project 2" for p in projects)
 
     @pytest.mark.asyncio
-    async def test_import_skip_duplicates(self, async_session):
+    async def test_import_skip_duplicates(self, test_session):
         """Test that duplicate projects are skipped"""
         # Create existing project
         existing_project = Project(
@@ -108,8 +108,8 @@ class TestImportFromConfig:
             github_repo_url="https://github.com/owner/repo1",
             description="Already exists",
         )
-        async_session.add(existing_project)
-        await async_session.commit()
+        test_session.add(existing_project)
+        await test_session.commit()
 
         config = {
             "projects": [
@@ -126,17 +126,17 @@ class TestImportFromConfig:
             ]
         }
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 1  # Only one new project
 
-        result = await async_session.execute(select(Project))
+        result = await test_session.execute(select(Project))
         projects = result.scalars().all()
 
         assert len(projects) == 2  # Total 2 projects
 
     @pytest.mark.asyncio
-    async def test_import_with_http_url(self, async_session):
+    async def test_import_with_http_url(self, test_session):
         """Test importing project with full HTTP URL"""
         config = {
             "projects": [
@@ -148,17 +148,17 @@ class TestImportFromConfig:
             ]
         }
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 1
 
-        result = await async_session.execute(select(Project))
+        result = await test_session.execute(select(Project))
         project = result.scalar_one()
 
         assert project.github_repo_url == "https://github.com/owner/repo"
 
     @pytest.mark.asyncio
-    async def test_import_with_telegram_chat_id(self, async_session):
+    async def test_import_with_telegram_chat_id(self, test_session):
         """Test importing project with telegram_chat_id"""
         config = {
             "projects": [
@@ -170,26 +170,26 @@ class TestImportFromConfig:
             ]
         }
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 1
 
-        result = await async_session.execute(select(Project))
+        result = await test_session.execute(select(Project))
         project = result.scalar_one()
 
         assert project.telegram_chat_id == -1001234567890
 
     @pytest.mark.asyncio
-    async def test_import_empty_config(self, async_session):
+    async def test_import_empty_config(self, test_session):
         """Test importing with empty config"""
         config = {"projects": []}
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 0
 
     @pytest.mark.asyncio
-    async def test_import_skip_invalid_entries(self, async_session):
+    async def test_import_skip_invalid_entries(self, test_session):
         """Test that entries without github_repo are skipped"""
         config = {
             "projects": [
@@ -198,7 +198,7 @@ class TestImportFromConfig:
             ]
         }
 
-        count = await import_from_config(async_session, config)
+        count = await import_from_config(test_session, config)
 
         assert count == 1
 
@@ -207,39 +207,39 @@ class TestImportFromReposList:
     """Tests for import_from_repos_list function"""
 
     @pytest.mark.asyncio
-    async def test_import_from_comma_separated_list(self, async_session):
+    async def test_import_from_comma_separated_list(self, test_session):
         """Test importing from comma-separated repo list"""
         repos_str = "owner/repo1,owner/repo2,owner/repo3"
 
-        count = await import_from_repos_list(async_session, repos_str)
+        count = await import_from_repos_list(test_session, repos_str)
 
         assert count == 3
 
-        result = await async_session.execute(select(Project))
+        result = await test_session.execute(select(Project))
         projects = result.scalars().all()
 
         assert len(projects) == 3
 
     @pytest.mark.asyncio
-    async def test_import_from_list_with_whitespace(self, async_session):
+    async def test_import_from_list_with_whitespace(self, test_session):
         """Test importing with whitespace in list"""
         repos_str = "owner/repo1, owner/repo2 , owner/repo3"
 
-        count = await import_from_repos_list(async_session, repos_str)
+        count = await import_from_repos_list(test_session, repos_str)
 
         assert count == 3
 
     @pytest.mark.asyncio
-    async def test_import_empty_string(self, async_session):
+    async def test_import_empty_string(self, test_session):
         """Test importing with empty string"""
-        count = await import_from_repos_list(async_session, "")
+        count = await import_from_repos_list(test_session, "")
 
         assert count == 0
 
     @pytest.mark.asyncio
-    async def test_import_none(self, async_session):
+    async def test_import_none(self, test_session):
         """Test importing with None"""
-        count = await import_from_repos_list(async_session, None)
+        count = await import_from_repos_list(test_session, None)
 
         assert count == 0
 
@@ -248,7 +248,7 @@ class TestAutoImportProjects:
     """Tests for auto_import_projects function"""
 
     @pytest.mark.asyncio
-    async def test_auto_import_from_config_file(self, async_session, tmp_path, monkeypatch):
+    async def test_auto_import_from_config_file(self, test_session, tmp_path, monkeypatch):
         """Test auto-import prioritizes config file"""
         config_data = {"projects": [{"name": "Config Project", "github_repo": "owner/config-repo"}]}
 
@@ -263,14 +263,14 @@ class TestAutoImportProjects:
         monkeypatch.setattr(config.settings, "scar_import_user", None)
         monkeypatch.setattr(config.settings, "scar_import_org", None)
 
-        result = await auto_import_projects(async_session)
+        result = await auto_import_projects(test_session)
 
         assert result["count"] == 1
         assert "config_file" in result["source"]
         assert len(result["errors"]) == 0
 
     @pytest.mark.asyncio
-    async def test_auto_import_from_env_repos(self, async_session, monkeypatch):
+    async def test_auto_import_from_env_repos(self, test_session, monkeypatch):
         """Test auto-import from SCAR_IMPORT_REPOS env var"""
         from src import config
 
@@ -279,13 +279,13 @@ class TestAutoImportProjects:
         monkeypatch.setattr(config.settings, "scar_import_user", None)
         monkeypatch.setattr(config.settings, "scar_import_org", None)
 
-        result = await auto_import_projects(async_session)
+        result = await auto_import_projects(test_session)
 
         assert result["count"] == 2
         assert "env_repos" in result["source"]
 
     @pytest.mark.asyncio
-    async def test_auto_import_no_sources(self, async_session, monkeypatch):
+    async def test_auto_import_no_sources(self, test_session, monkeypatch):
         """Test auto-import with no sources configured"""
         from src import config
 
@@ -294,14 +294,14 @@ class TestAutoImportProjects:
         monkeypatch.setattr(config.settings, "scar_import_user", None)
         monkeypatch.setattr(config.settings, "scar_import_org", None)
 
-        result = await auto_import_projects(async_session)
+        result = await auto_import_projects(test_session)
 
         assert result["count"] == 0
         assert result["source"] == "none"
         assert len(result["errors"]) == 0
 
     @pytest.mark.asyncio
-    async def test_auto_import_multiple_sources(self, async_session, tmp_path, monkeypatch):
+    async def test_auto_import_multiple_sources(self, test_session, tmp_path, monkeypatch):
         """Test auto-import from multiple sources"""
         config_data = {"projects": [{"name": "Config Project", "github_repo": "owner/config-repo"}]}
 
@@ -315,7 +315,7 @@ class TestAutoImportProjects:
         monkeypatch.setattr(config.settings, "scar_import_user", None)
         monkeypatch.setattr(config.settings, "scar_import_org", None)
 
-        result = await auto_import_projects(async_session)
+        result = await auto_import_projects(test_session)
 
         assert result["count"] == 2
         assert "config_file" in result["source"]
