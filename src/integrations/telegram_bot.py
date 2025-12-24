@@ -86,7 +86,7 @@ class OrchestratorTelegramBot:
             project = Project(
                 name=f"Project_{chat_id}",
                 status=ProjectStatus.BRAINSTORMING,
-                telegram_chat_id=str(chat_id),
+                telegram_chat_id=chat_id,
             )
             session.add(project)
             await session.commit()
