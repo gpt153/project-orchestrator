@@ -64,15 +64,17 @@ async def test_check_conversation_completeness_with_messages(db_session):
         await save_conversation_message(db_session, project.id, role, content)
 
     # Mock the agent response
-    with patch("src.services.vision_generator.completeness_agent.run") as mock_run:
+    with patch("src.services.vision_generator._get_completeness_agent") as mock_get_agent:
+        mock_agent = AsyncMock()
         mock_result = AsyncMock()
         mock_result.data.is_ready = False
         mock_result.data.next_question = "What problem does this solve?"
-        mock_run.return_value = mock_result
+        mock_agent.run.return_value = mock_result
+        mock_get_agent.return_value = mock_agent
 
         await check_conversation_completeness(db_session, project.id)
 
-        assert mock_run.called
+        assert mock_agent.run.called
 
 
 @pytest.mark.asyncio
@@ -104,10 +106,12 @@ async def test_extract_features(db_session):
         Feature(name="Dashboard", description="Overview of all tasks", priority="HIGH"),
     ]
 
-    with patch("src.services.vision_generator.feature_extraction_agent.run") as mock_run:
+    with patch("src.services.vision_generator._get_feature_extraction_agent") as mock_get_agent:
+        mock_agent = AsyncMock()
         mock_result = AsyncMock()
         mock_result.data = mock_features
-        mock_run.return_value = mock_result
+        mock_agent.run.return_value = mock_result
+        mock_get_agent.return_value = mock_agent
 
         features = await extract_features(db_session, project.id)
 
@@ -129,11 +133,13 @@ async def test_generate_vision_document_not_ready(db_session):
     await db_session.refresh(project)
 
     # Mock completeness check to return not ready
-    with patch("src.services.vision_generator.completeness_agent.run") as mock_check:
+    with patch("src.services.vision_generator._get_completeness_agent") as mock_get_agent:
+        mock_agent = AsyncMock()
         mock_result = AsyncMock()
         mock_result.data.is_ready = False
         mock_result.data.next_question = "What problem does this solve?"
-        mock_check.return_value = mock_result
+        mock_agent.run.return_value = mock_result
+        mock_get_agent.return_value = mock_agent
 
         with pytest.raises(ValueError, match="not ready"):
             await generate_vision_document(db_session, project.id)
@@ -157,10 +163,12 @@ async def test_generate_vision_document_success(db_session):
     )
 
     # Mock completeness check to return ready
-    with patch("src.services.vision_generator.completeness_agent.run") as mock_check:
+    with patch("src.services.vision_generator._get_completeness_agent") as mock_get_completeness:
+        mock_completeness_agent = AsyncMock()
         mock_check_result = AsyncMock()
         mock_check_result.data.is_ready = True
-        mock_check.return_value = mock_check_result
+        mock_completeness_agent.run.return_value = mock_check_result
+        mock_get_completeness.return_value = mock_completeness_agent
 
         # Mock vision generation
         mock_vision = VisionDocument(
@@ -176,10 +184,12 @@ async def test_generate_vision_document_success(db_session):
             out_of_scope=["Mobile app", "Team collaboration"],
         )
 
-        with patch("src.services.vision_generator.vision_generation_agent.run") as mock_gen:
+        with patch("src.services.vision_generator._get_vision_generation_agent") as mock_get_vision:
+            mock_vision_agent = AsyncMock()
             mock_gen_result = AsyncMock()
             mock_gen_result.data = mock_vision
-            mock_gen.return_value = mock_gen_result
+            mock_vision_agent.run.return_value = mock_gen_result
+            mock_get_vision.return_value = mock_vision_agent
 
             vision = await generate_vision_document(db_session, project.id)
 
