@@ -12,6 +12,7 @@ dependencies = [
     # Core framework
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
+    "slowapi>=0.1.9",  # Rate limiting middleware
 
     # AI Agent
     "pydantic-ai>=0.0.14",
