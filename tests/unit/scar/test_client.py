@@ -4,8 +4,6 @@ Unit tests for SCAR HTTP client.
 Uses respx to mock HTTP requests to SCAR Test Adapter API.
 """
 
-import asyncio
-from datetime import datetime
 from uuid import uuid4
 
 import httpx
@@ -15,7 +13,6 @@ from respx import MockRouter
 
 from src.config import Settings
 from src.scar.client import ScarClient
-from src.scar.types import ScarMessage
 
 
 @pytest.fixture
@@ -46,7 +43,9 @@ class TestSendCommand:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_send_command_success(self, client: ScarClient, project_id, respx_mock: MockRouter):
+    async def test_send_command_success(
+        self, client: ScarClient, project_id, respx_mock: MockRouter
+    ):
         """Test successfully sending a command to SCAR"""
         # Mock POST /test/message
         respx_mock.post("http://localhost:3000/test/message").mock(
@@ -121,9 +120,7 @@ class TestGetMessages:
 
     @pytest.mark.asyncio
     @respx.mock
-    async def test_get_messages_empty(
-        self, client: ScarClient, project_id, respx_mock: MockRouter
-    ):
+    async def test_get_messages_empty(self, client: ScarClient, project_id, respx_mock: MockRouter):
         """Test getting messages from empty conversation"""
         conversation_id = f"pm-project-{project_id}"
 
@@ -374,9 +371,7 @@ class TestWaitForCompletion:
         )
 
         with pytest.raises(TimeoutError, match="SCAR command timed out"):
-            await client.wait_for_completion(
-                conversation_id, timeout=0.5, poll_interval=0.1
-            )
+            await client.wait_for_completion(conversation_id, timeout=0.5, poll_interval=0.1)
 
 
 class TestBuildConversationId:

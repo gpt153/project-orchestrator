@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 class ScarMessageRequest(BaseModel):
     """Request body for POST /test/message"""
 
-    conversationId: str = Field(
+    conversationId: str = Field(  # noqa: N815 - matches SCAR API format
         ..., description="Unique conversation ID (format: pm-project-{uuid})"
     )
     message: str = Field(..., description="Command to send to SCAR (e.g., '/status')")
@@ -33,5 +33,5 @@ class ScarMessage(BaseModel):
 class ScarMessagesResponse(BaseModel):
     """Response body for GET /test/messages/:id"""
 
-    conversationId: str = Field(..., description="Conversation ID")
+    conversationId: str = Field(..., description="Conversation ID")  # noqa: N815 - matches SCAR API
     messages: list[ScarMessage] = Field(default_factory=list, description="All messages")

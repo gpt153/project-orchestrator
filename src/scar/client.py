@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 class ScarClient:
     """
     HTTP client for SCAR Test Adapter API.
-    
+
     Manages communication with SCAR's HTTP endpoints for command execution,
     message retrieval, and conversation cleanup.
     """
@@ -31,7 +31,7 @@ class ScarClient:
     def __init__(self, settings: Settings):
         """
         Initialize SCAR client with configuration.
-        
+
         Args:
             settings: Application settings containing SCAR configuration
         """
@@ -42,10 +42,10 @@ class ScarClient:
     def _build_conversation_id(self, project_id: UUID) -> str:
         """
         Build conversation ID for SCAR from project ID.
-        
+
         Args:
             project_id: Project UUID
-            
+
         Returns:
             str: Conversation ID (format: pm-project-{uuid})
         """
@@ -56,15 +56,15 @@ class ScarClient:
     ) -> str:
         """
         Send a command to SCAR and return conversation ID for polling.
-        
+
         Args:
             project_id: Project UUID
             command: SCAR command to execute (e.g., "prime", "plan-feature-github")
             args: Optional command arguments
-            
+
         Returns:
             str: Conversation ID for polling messages
-            
+
         Raises:
             httpx.HTTPError: If request fails
         """
@@ -93,7 +93,7 @@ class ScarClient:
             response.raise_for_status()
 
         logger.info(
-            f"SCAR command sent successfully",
+            "SCAR command sent successfully",
             extra={"conversation_id": conversation_id, "command": command},
         )
 
@@ -102,13 +102,13 @@ class ScarClient:
     async def get_messages(self, conversation_id: str) -> list[ScarMessage]:
         """
         Get all messages from SCAR conversation.
-        
+
         Args:
             conversation_id: Conversation ID to retrieve messages from
-            
+
         Returns:
             list[ScarMessage]: All messages (sent by bot)
-            
+
         Raises:
             httpx.HTTPError: If request fails
         """
@@ -128,10 +128,10 @@ class ScarClient:
     async def clear_messages(self, conversation_id: str) -> None:
         """
         Clear all messages from SCAR conversation.
-        
+
         Args:
             conversation_id: Conversation ID to clear
-            
+
         Raises:
             httpx.HTTPError: If request fails
         """
@@ -146,17 +146,17 @@ class ScarClient:
     ) -> list[ScarMessage]:
         """
         Poll SCAR conversation until command completes.
-        
+
         Completion is detected when no new messages appear for 2 consecutive polls.
-        
+
         Args:
             conversation_id: Conversation ID to poll
             timeout: Max wait time in seconds (defaults to self.timeout_seconds)
             poll_interval: Seconds between polls (default: 2.0)
-            
+
         Returns:
             list[ScarMessage]: All messages from completed command
-            
+
         Raises:
             TimeoutError: If no completion detected within timeout
             httpx.HTTPError: If request fails
@@ -165,7 +165,7 @@ class ScarClient:
             timeout = float(self.timeout_seconds)
 
         logger.info(
-            f"Waiting for SCAR command completion",
+            "Waiting for SCAR command completion",
             extra={
                 "conversation_id": conversation_id,
                 "timeout": timeout,
@@ -207,7 +207,7 @@ class ScarClient:
             # If we've had 2 consecutive polls with no new messages, consider complete
             if stable_count >= 2:
                 logger.info(
-                    f"SCAR command completed",
+                    "SCAR command completed",
                     extra={
                         "conversation_id": conversation_id,
                         "message_count": current_count,
