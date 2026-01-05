@@ -32,6 +32,8 @@ services:
     container_name: backend
     ports:
       - "8001:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://manager:${POSTGRES_PASSWORD:-dev_password}@postgres:5432/project_manager}
       - REDIS_URL=redis://redis:6379/0
@@ -46,6 +48,7 @@ services:
       - SCAR_IMPORT_REPOS=${SCAR_IMPORT_REPOS:-}
       - SCAR_IMPORT_USER=${SCAR_IMPORT_USER:-}
       - SCAR_IMPORT_ORG=${SCAR_IMPORT_ORG:-}
+      - SCAR_BASE_URL=${SCAR_BASE_URL:-http://host.docker.internal:3001}
     depends_on:
       postgres:
         condition: service_healthy
