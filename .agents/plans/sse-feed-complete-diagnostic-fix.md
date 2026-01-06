@@ -148,59 +148,18 @@ ORDER BY started_at DESC LIMIT 3;
 
 **Conclusion**: Data exists in database but SSE feed doesn't show it to user.
 
-### Relevant Documentation YOU SHOULD READ THESE BEFORE IMPLEMENTING!
+### Relevant Documentation
 
-**SSE Protocol:**
-- [MDN EventSource API](https://developer.mozilla.org/en-US/docs/Web/API/EventSource)
-  - Section: Named events with addEventListener
-  - **Why**: Validates frontend event listener pattern
-- [sse-starlette Documentation](https://github.com/sysid/sse-starlette)
-  - Section: Event generator pattern
-  - **Why**: Confirms EventSourceResponse usage is correct
-
-**SQLAlchemy Async:**
-- [SQLAlchemy 2.0 Async Sessions](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html#asyncio-session)
-  - Section: Session isolation and expire_on_commit
-  - **Why**: Understand transaction visibility and session lifecycle
-
-**PydanticAI Tools:**
-- [PydanticAI Documentation - Tools](https://ai.pydantic.dev/tools/)
-  - Section: Tool registration and invocation
-  - **Why**: Validate execute_scar tool is properly registered
+- [MDN EventSource API](https://developer.mozilla.org/en-US/docs/Web/API/EventSource#named_events) - Named events pattern
+- [sse-starlette](https://github.com/sysid/sse-starlette) - Event generator pattern
+- [SQLAlchemy Async Sessions](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html#asyncio-session) - Session isolation
+- [PydanticAI Tools](https://ai.pydantic.dev/tools/) - Tool registration
 
 ### Patterns to Follow
 
-**Logging Pattern** (from CLAUDE.md):
-```python
-logger.info(
-    "Human-readable message",
-    extra={"key1": value1, "key2": value2}
-)
-```
-
-**Async Session Pattern** (from scar_executor.py):
-```python
-async with async_session_maker() as session:
-    # Operations
-    await session.commit()
-    await session.refresh(obj)
-```
-
-**Error Handling Pattern** (from scar_executor.py):
-```python
-try:
-    # Operation
-    execution.status = ExecutionStatus.RUNNING
-    await session.commit()
-    # ... work ...
-    execution.status = ExecutionStatus.COMPLETED
-    await session.commit()
-except SpecificError as e:
-    logger.error("Context message", extra={"error": str(e)})
-    execution.status = ExecutionStatus.FAILED
-    await session.commit()
-    return CommandResult(success=False, error=str(e), ...)
-```
+**Logging**: `logger.info("msg", extra={"key": val})`
+**Async Session**: `async with async_session_maker() as session: await session.commit()`
+**Error Handling**: Try/except with status updates, commit on each state change
 
 ---
 
@@ -240,663 +199,123 @@ IMPORTANT: Execute tasks sequentially. Each task has validation commands.
 
 #### TASK 1: ADD diagnostic logging to orchestrator_agent execute_scar tool
 
-- **FILE**: `src/agent/orchestrator_agent.py`
-- **LOCATION**: Lines 269-316 (execute_scar tool function)
-- **IMPLEMENT**: Add detailed logging BEFORE and AFTER execute_scar_command call
-- **PATTERN**: Use logger.info with extra dict (line 308 already has pattern)
-- **CODE**:
-```python
-@orchestrator_agent.tool
-async def execute_scar(
-    ctx: RunContext[AgentDependencies], command: str, args: list[str] | None = None
-) -> dict:
-    # ... existing docstring ...
-
-    # ADD: Log tool invocation
-    logger.info(
-        "🔧 DIAGNOSTIC: execute_scar tool INVOKED",
-        extra={
-            "project_id": str(ctx.deps.project_id),
-            "command": command,
-            "args": args,
-            "session_id": id(ctx.deps.session)
-        }
-    )
-
-    # ... existing validation ...
-
-    # ADD: Log before executor call
-    logger.info(
-        "📞 DIAGNOSTIC: Calling execute_scar_command service",
-        extra={
-            "project_id": str(ctx.deps.project_id),
-            "scar_command": scar_cmd.value
-        }
-    )
-
-    result = await execute_scar_command(ctx.deps.session, ctx.deps.project_id, scar_cmd, args or [])
-
-    # ADD: Log after executor call
-    logger.info(
-        "✅ DIAGNOSTIC: execute_scar_command returned",
-        extra={
-            "project_id": str(ctx.deps.project_id),
-            "success": result.success,
-            "duration": result.duration_seconds
-        }
-    )
-
-    return { ... }
-```
-- **VALIDATE**: `uv run python -c "from src.agent.orchestrator_agent import execute_scar; print('✓ Tool imports correctly')"`
+- **FILE**: `src/agent/orchestrator_agent.py` (lines 269-316)
+- **IMPLEMENT**: Add 3 log statements: tool invoked, before service call, after service call
+- **LOGS**: `🔧 DIAGNOSTIC: execute_scar tool INVOKED`, `📞 Calling execute_scar_command`, `✅ execute_scar_command returned`
+- **VALIDATE**: `uv run python -c "from src.agent.orchestrator_agent import execute_scar; print('✓')"`
 
 #### TASK 2: ADD diagnostic logging to scar_executor.execute_scar_command
 
-- **FILE**: `src/services/scar_executor.py`
-- **LOCATION**: Lines 49-233 (execute_scar_command function)
-- **IMPLEMENT**: Add logging for database operations
-- **CODE**:
-```python
-async def execute_scar_command(...) -> CommandResult:
-    # ... existing project fetch ...
-
-    # AFTER line 93 (session.add(execution)):
-    logger.info(
-        "💾 DIAGNOSTIC: ScarCommandExecution created (NOT YET COMMITTED)",
-        extra={
-            "execution_id": str(execution.id),
-            "project_id": str(project_id),
-            "command": command.value,
-            "status": execution.status.value
-        }
-    )
-
-    await session.commit()
-
-    # ADD: After commit
-    logger.info(
-        "✅ DIAGNOSTIC: ScarCommandExecution COMMITTED to database",
-        extra={
-            "execution_id": str(execution.id),
-            "project_id": str(project_id),
-            "started_at": execution.started_at.isoformat() if execution.started_at else None
-        }
-    )
-
-    await session.refresh(execution)
-
-    # ... rest of execution ...
-
-    # AFTER line 138 (execution.output = output):
-    logger.info(
-        "💾 DIAGNOSTIC: Updating execution to COMPLETED (NOT YET COMMITTED)",
-        extra={
-            "execution_id": str(execution.id),
-            "status": ExecutionStatus.COMPLETED.value
-        }
-    )
-
-    await session.commit()
-
-    # ADD: After final commit
-    logger.info(
-        "✅ DIAGNOSTIC: Execution COMPLETED and COMMITTED",
-        extra={
-            "execution_id": str(execution.id),
-            "completed_at": execution.completed_at.isoformat() if execution.completed_at else None
-        }
-    )
-```
-- **VALIDATE**: `uv run python -c "from src.services.scar_executor import execute_scar_command; print('✓ Imports correctly')"`
+- **FILE**: `src/services/scar_executor.py` (lines 49-233)
+- **IMPLEMENT**: Add 4 log statements tracking DB commits
+- **LOGS**: After line 93: `💾 created (NOT COMMITTED)`, after commit: `✅ COMMITTED`, after line 138: `💾 COMPLETED (NOT COMMITTED)`, after final commit: `✅ COMPLETED and COMMITTED`
+- **VALIDATE**: `uv run python -c "from src.services.scar_executor import execute_scar_command; print('✓')"`
 
 #### TASK 3: ADD diagnostic logging to SSE feed service polling
 
-- **FILE**: `src/services/scar_feed_service.py`
-- **LOCATION**: Lines 71-149 (stream_scar_activity function)
-- **IMPLEMENT**: Log every poll cycle and query results
-- **CODE**:
-```python
-async def stream_scar_activity(...) -> AsyncGenerator[Dict, None]:
-    logger.info(f"Starting SCAR activity stream for project {project_id}")
-
-    last_timestamp = None
-
-    # Get initial activities
-    activities = await get_recent_scar_activity(...)
-
-    # ADD: Log initial load
-    logger.info(
-        "📊 DIAGNOSTIC: Initial activities loaded",
-        extra={
-            "project_id": str(project_id),
-            "count": len(activities),
-            "last_timestamp": activities[-1]["timestamp"] if activities else None
-        }
-    )
-
-    if activities:
-        last_timestamp = activities[-1]["timestamp"]
-        for activity in activities:
-            yield activity
-
-    # Poll for new activities
-    while True:
-        await asyncio.sleep(2)
-
-        # ADD: Log poll cycle
-        logger.debug(
-            "🔄 DIAGNOSTIC: Polling for new activities",
-            extra={
-                "project_id": str(project_id),
-                "last_timestamp": last_timestamp
-            }
-        )
-
-        # ... existing query ...
-
-        result = await session.execute(query)
-        new_activities = result.scalars().all()
-
-        # ADD: Log query results
-        if new_activities:
-            logger.info(
-                "🆕 DIAGNOSTIC: New activities detected",
-                extra={
-                    "project_id": str(project_id),
-                    "count": len(new_activities),
-                    "new_ids": [str(a.id) for a in new_activities]
-                }
-            )
-
-        for activity in new_activities:
-            # ... existing serialization ...
-
-            # ADD: Log before yield
-            logger.info(
-                "📤 DIAGNOSTIC: Yielding activity to SSE stream",
-                extra={
-                    "execution_id": str(activity.id),
-                    "timestamp": activity_dict["timestamp"]
-                }
-            )
-
-            last_timestamp = activity_dict["timestamp"]
-            yield activity_dict
-```
-- **VALIDATE**: `uv run python -c "from src.services.scar_feed_service import stream_scar_activity; print('✓ Imports correctly')"`
+- **FILE**: `src/services/scar_feed_service.py` (lines 71-149)
+- **IMPLEMENT**: Add 4 log statements: initial load, poll cycle (debug), new activities detected, yielding activity
+- **LOGS**: `📊 Initial activities loaded`, `🔄 Polling` (debug), `🆕 New activities detected`, `📤 Yielding activity`
+- **VALIDATE**: `uv run python -c "from src.services.scar_feed_service import stream_scar_activity; print('✓')"`
 
 #### TASK 4: ADD diagnostic logging to SSE endpoint
 
-- **FILE**: `src/api/sse.py`
-- **LOCATION**: Lines 22-104 (sse_scar_activity endpoint)
-- **IMPLEMENT**: Log connection lifecycle
-- **CODE**:
-```python
-@router.get("/sse/scar/{project_id}")
-async def sse_scar_activity(...):
-    logger.info(f"SSE connection established for project {project_id} (verbosity: {verbosity})")
+- **FILE**: `src/api/sse.py` (lines 22-104)
+- **IMPLEMENT**: Add 2 log statements: session created, sending event
+- **LOGS**: `🔌 SSE session created`, `📡 Sending SSE event` (debug)
+- **VALIDATE**: `uv run python -c "from src.api.sse import router; print('✓')"`
 
-    async def event_generator():
-        try:
-            async with async_session_maker() as session:
-                # ADD: Log session creation
-                logger.info(
-                    "🔌 DIAGNOSTIC: SSE session created",
-                    extra={
-                        "project_id": str(project_id),
-                        "session_id": id(session),
-                        "verbosity": verbosity
-                    }
-                )
+#### TASK 5: CREATE diagnostic script
 
-                activity_stream = stream_scar_activity(session, project_id, verbosity_level=verbosity)
+- **FILE**: `scripts/diagnose_sse_feed.py` (NEW)
+- **IMPLEMENT**: Script to validate DB queries and @property methods
+- **FEATURES**: Total executions count, recent 10, simulate polling query, validate @property methods, session isolation check
+- **USAGE**: `uv run python scripts/diagnose_sse_feed.py <project_id>`
+- **VALIDATE**: `uv run python -c "import scripts.diagnose_sse_feed; print('✓')"`
 
-                # ... existing heartbeat tracking ...
+**Script checks**: Total executions, recent 10, polling query simulation, @property validation, session settings
 
-                try:
-                    async for activity in activity_stream:
-                        # ADD: Log before send
-                        logger.debug(
-                            "📡 DIAGNOSTIC: Sending SSE event to client",
-                            extra={
-                                "project_id": str(project_id),
-                                "activity_id": activity.get("id"),
-                                "message": activity.get("message")[:50] if activity.get("message") else None
-                            }
-                        )
-
-                        yield {"event": "activity", "data": json.dumps(activity)}
-
-                        # ... existing heartbeat logic ...
-```
-- **VALIDATE**: `uv run python -c "from src.api.sse import router; print('✓ SSE router imports correctly')"`
-
-#### TASK 5: CREATE diagnostic script to validate database visibility
-
-- **FILE**: `scripts/diagnose_sse_feed.py` (NEW FILE)
-- **IMPLEMENT**: Script that simulates SSE polling and validates query results
-- **CODE**:
-```python
-"""
-Diagnostic script to validate SSE feed database queries.
-
-Usage:
-    uv run python scripts/diagnose_sse_feed.py <project_id>
-"""
-import asyncio
-import sys
-from datetime import datetime
-from uuid import UUID
-
-from sqlalchemy import desc, select
-
-from src.database.connection import async_session_maker
-from src.database.models import ScarCommandExecution
-
-
-async def diagnose_sse_feed(project_id: UUID):
-    """Run diagnostic checks on SSE feed database queries."""
-
-    print(f"🔍 Diagnosing SSE feed for project {project_id}\n")
-
-    async with async_session_maker() as session:
-        # Check 1: Total executions
-        query = select(ScarCommandExecution).where(
-            ScarCommandExecution.project_id == project_id
-        )
-        result = await session.execute(query)
-        all_executions = result.scalars().all()
-
-        print(f"✅ Total ScarCommandExecution records: {len(all_executions)}")
-
-        if not all_executions:
-            print("❌ No executions found for this project!")
-            return
-
-        # Check 2: Recent executions (what SSE should show initially)
-        recent_query = (
-            select(ScarCommandExecution)
-            .where(ScarCommandExecution.project_id == project_id)
-            .order_by(desc(ScarCommandExecution.started_at))
-            .limit(10)
-        )
-        result = await session.execute(recent_query)
-        recent = result.scalars().all()
-
-        print(f"\n📊 Recent 10 executions (ordered by started_at DESC):")
-        for i, exec in enumerate(recent, 1):
-            print(f"  {i}. {exec.id} | {exec.started_at} | {exec.command_type.value} | {exec.status.value}")
-
-        # Check 3: Simulate polling query (timestamp comparison)
-        if recent:
-            last_timestamp = recent[-1].started_at
-            print(f"\n🔄 Simulating SSE polling query (activities AFTER {last_timestamp}):")
-
-            poll_query = (
-                select(ScarCommandExecution)
-                .where(
-                    ScarCommandExecution.project_id == project_id,
-                    ScarCommandExecution.started_at > last_timestamp
-                )
-                .order_by(ScarCommandExecution.started_at.asc())
-            )
-            result = await session.execute(poll_query)
-            newer = result.scalars().all()
-
-            if newer:
-                print(f"  ✅ Found {len(newer)} activities newer than {last_timestamp}")
-                for exec in newer:
-                    print(f"    - {exec.id} | {exec.started_at} | {exec.command_type.value}")
-            else:
-                print(f"  ℹ️  No activities newer than {last_timestamp}")
-
-        # Check 4: Validate @property methods
-        print(f"\n🏷️  Validating ScarCommandExecution @property methods:")
-        test_exec = recent[0]
-        print(f"  - source: {test_exec.source}")
-        print(f"  - message: {test_exec.message[:50]}..." if test_exec.message else "None")
-        print(f"  - verbosity_level: {test_exec.verbosity_level}")
-
-        # Check 5: Session isolation check
-        print(f"\n🔒 Session isolation check:")
-        print(f"  - Session ID: {id(session)}")
-        print(f"  - expire_on_commit: {session.expire_on_commit}")
-
-        print("\n✅ Diagnostic complete!")
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: uv run python scripts/diagnose_sse_feed.py <project_id>")
-        sys.exit(1)
-
-    project_id = UUID(sys.argv[1])
-    asyncio.run(diagnose_sse_feed(project_id))
-```
-- **VALIDATE**: `uv run python -c "import scripts.diagnose_sse_feed; print('✓ Script imports correctly')"`
 
 ### Phase 2: Root Cause Identification
 
-#### TASK 6: RUN diagnostic script and collect logs
+#### TASK 6: RUN diagnostic script
 
-- **EXECUTE**:
-```bash
-# Get a project ID from database
-uv run python -c "import asyncio; from src.database.connection import async_session_maker; from sqlalchemy import select; from src.database.models import Project; async def get_id(): async with async_session_maker() as s: r = await s.execute(select(Project).limit(1)); p = r.scalar_one_or_none(); print(p.id if p else 'NO PROJECTS'); asyncio.run(get_id())"
+- **EXECUTE**: Get project ID from DB, run `uv run python scripts/diagnose_sse_feed.py <id>`
+- **ANALYZE**: Validate DB records exist, timestamp query works, @property methods OK, session settings correct
 
-# Run diagnostic with that project ID
-uv run python scripts/diagnose_sse_feed.py <project_id>
-```
-- **ANALYZE**: Review output to validate:
-  - [ ] Database has ScarCommandExecution records
-  - [ ] Timestamp comparison query returns expected results
-  - [ ] @property methods work correctly
-  - [ ] Session isolation settings are correct
+#### TASK 7: TRIGGER SCAR execution and monitor
 
-#### TASK 7: TRIGGER SCAR execution and monitor logs
+- **START**: Backend with `LOG_LEVEL=DEBUG`, monitor logs with `tail -f | grep DIAGNOSTIC`
+- **TEST**: Send "analyze the codebase", observe all checkpoints: tool invoked, service called, created, committed, completed, SSE loaded, detected, yielding, sending
+- **VALIDATE**: Every diagnostic log appears in correct order
 
-- **EXECUTE**:
-```bash
-# Start backend with debug logging
-export LOG_LEVEL=DEBUG
-uv run uvicorn src.main:app --reload --port 8000 &
+#### TASK 8: IDENTIFY failure point
 
-# Monitor logs in real-time
-tail -f logs/app.log | grep DIAGNOSTIC
-```
-- **TEST**: Via WebUI or API, send message "analyze the codebase"
-- **OBSERVE**: Check for each diagnostic log:
-  - [ ] 🔧 execute_scar tool INVOKED
-  - [ ] 📞 Calling execute_scar_command service
-  - [ ] 💾 ScarCommandExecution created
-  - [ ] ✅ ScarCommandExecution COMMITTED
-  - [ ] ✅ Execution COMPLETED and COMMITTED
-  - [ ] 📊 Initial activities loaded (SSE connection)
-  - [ ] 🆕 New activities detected (SSE polling)
-  - [ ] 📤 Yielding activity to SSE stream
-  - [ ] 📡 Sending SSE event to client
-
-#### TASK 8: IDENTIFY failure point from diagnostic logs
-
-- **ANALYZE**: Based on which diagnostic logs appear vs missing, determine failure point:
-  - **Missing 🔧 tool INVOKED**: Agent not calling execute_scar → Fix prompts
-  - **Missing 💾 COMMITTED**: Database transaction failing → Fix executor
-  - **Missing 🆕 New activities detected**: SSE query not finding records → Fix polling query or session isolation
-  - **Missing 📡 Sending SSE event**: Generator not yielding → Fix stream logic
-  - **All logs present but frontend empty**: Frontend issue → Fix EventSource
-- **DOCUMENT**: Create `.agents/diagnostics/sse-feed-failure-point.txt` with findings
+- **ANALYZE**: Missing logs indicate failure point - tool not invoked → fix prompts; not committed → fix executor; not detected → fix polling/session; not sending → fix stream; all present but frontend empty → fix EventSource
+- **DOCUMENT**: Record findings in `.agents/diagnostics/sse-feed-failure-point.txt`
 
 ### Phase 3: Targeted Fixes
 
-#### TASK 9: FIX identified issues (conditional on Phase 2 findings)
+#### TASK 9: FIX identified issues (conditional)
 
-**If agent not calling tool:**
+**If agent not calling tool**: Update `src/agent/prompts.py` line 49 to be more explicit: "analyze/prime/load codebase → IMMEDIATELY call execute_scar('prime')"
 
-- **FILE**: `src/agent/prompts.py`
-- **UPDATE**: Line 49 (exception for "analyze codebase")
-- **CHANGE**: Make it more explicit
-```python
-- Exception: If user says "analyze the codebase" or similar → call execute_scar("prime")
-+ Exception: If user says "analyze the codebase", "analyze", "prime", "load codebase" → IMMEDIATELY call execute_scar("prime") without asking
-```
+**If session isolation**: Check `src/database/connection.py` has `expire_on_commit=False`
 
-**If database session isolation:**
+**If polling query**: Validate `src/services/scar_feed_service.py` line 116 uses `started_at > last_dt` (should already be fixed PR #46)
 
-- **FILE**: `src/database/connection.py`
-- **CHECK**: expire_on_commit setting
-- **FIX**: Ensure `expire_on_commit=False` for SSE sessions
-```python
-async_session_maker = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,  # ✅ Must be False for SSE to work
-)
-```
+**If frontend**: Validate `frontend/src/hooks/useScarFeed.ts` line 24 uses `addEventListener('activity', ...)` (should already be fixed PR #48)
 
-**If SSE polling query:**
+#### TASK 10: ADD flush to ensure DB visibility
 
-- **FILE**: `src/services/scar_feed_service.py`
-- **UPDATE**: Line 116 query (already fixed in PR #46, but validate it's correct)
-- **VALIDATE**: Ensure using `started_at > last_dt` not `id > last_id`
-
-**If frontend EventSource:**
-
-- **FILE**: `frontend/src/hooks/useScarFeed.ts`
-- **UPDATE**: Line 24 (already fixed in PR #48, but validate)
-- **VALIDATE**: Ensure using `addEventListener('activity', ...)` not `onmessage`
-
-#### TASK 10: ADD database commit flush to ensure visibility
-
-- **FILE**: `src/services/scar_executor.py`
-- **UPDATE**: After line 94 (await session.commit())
-- **ADD**: Explicit flush to ensure immediate visibility
-```python
-await session.commit()
-await session.flush()  # Ensure immediately visible to other sessions
-```
-- **RATIONALE**: Some async session configurations may buffer commits
+- **FILE**: `src/services/scar_executor.py` line 94
+- **ADD**: `await session.flush()` after commit for immediate visibility
 - **VALIDATE**: `uv run python -c "from src.services.scar_executor import execute_scar_command; print('✓')"`
 
 ### Phase 4: Integration Testing
 
-#### TASK 11: CREATE integration test for complete SSE flow
+#### TASK 11: CREATE integration test
 
-- **FILE**: `tests/integration/test_sse_feed_integration.py` (NEW FILE)
-- **IMPLEMENT**: End-to-end test from agent tool call to SSE stream reception
-- **PATTERN**: Mirror existing test patterns from `tests/services/test_scar_executor.py`
-- **CODE**:
-```python
-"""
-Integration test for SSE feed end-to-end flow.
-
-Tests the complete chain:
-1. Agent calls execute_scar tool
-2. ScarCommandExecution created in database
-3. SSE feed service detects new execution
-4. SSE endpoint streams event to client
-"""
-import asyncio
-import json
-
-import pytest
-from pydantic_ai import RunContext
-
-from src.agent.orchestrator_agent import execute_scar
-from src.agent.tools import AgentDependencies
-from src.database.models import Project, ProjectStatus
-from src.services.scar_feed_service import stream_scar_activity
-
-
-@pytest.mark.asyncio
-async def test_sse_feed_shows_scar_execution(db_session):
-    """Test that SCAR execution appears in SSE feed within 5 seconds."""
-
-    # 1. Create test project
-    project = Project(
-        name="SSE Test Project",
-        status=ProjectStatus.PLANNING,
-        github_repo_url="https://github.com/test/repo"
-    )
-    db_session.add(project)
-    await db_session.commit()
-    await db_session.refresh(project)
-
-    # 2. Call execute_scar tool (simulating agent invocation)
-    deps = AgentDependencies(session=db_session, project_id=project.id)
-
-    # Mock RunContext
-    class MockRunContext:
-        def __init__(self, deps):
-            self.deps = deps
-
-    ctx = MockRunContext(deps)
-
-    # Execute PRIME command via tool
-    result = await execute_scar(ctx, command="prime", args=None)
-
-    assert result["success"] is True, f"SCAR execution failed: {result.get('error')}"
-
-    # 3. Verify ScarCommandExecution was created
-    from src.database.models import ScarCommandExecution
-    from sqlalchemy import select
-
-    query = select(ScarCommandExecution).where(
-        ScarCommandExecution.project_id == project.id
-    )
-    db_result = await db_session.execute(query)
-    executions = db_result.scalars().all()
-
-    assert len(executions) > 0, "No ScarCommandExecution records found after execute_scar"
-
-    # 4. Create SSE stream (simulating SSE endpoint)
-    activity_stream = stream_scar_activity(db_session, project.id, verbosity_level=2)
-
-    # 5. Collect activities from stream (with timeout)
-    activities = []
-
-    async def collect_activities():
-        async for activity in activity_stream:
-            activities.append(activity)
-            if len(activities) >= len(executions):
-                break
-
-    try:
-        await asyncio.wait_for(collect_activities(), timeout=5.0)
-    except asyncio.TimeoutError:
-        pytest.fail(f"SSE stream did not yield activities within 5 seconds. Got {len(activities)}/{len(executions)}")
-
-    # 6. Validate activities match executions
-    assert len(activities) == len(executions), \
-        f"SSE stream yielded {len(activities)} activities but {len(executions)} executions exist"
-
-    # Validate activity structure
-    first_activity = activities[0]
-    assert "id" in first_activity
-    assert "timestamp" in first_activity
-    assert "source" in first_activity
-    assert "message" in first_activity
-    assert first_activity["source"] == "scar"
-```
+- **FILE**: `tests/integration/test_sse_feed_integration.py` (NEW)
+- **IMPLEMENT**: E2E test: create project → call execute_scar tool → verify DB record → stream SSE → collect activities within 5s → validate structure
+- **PATTERN**: Mirror `tests/services/test_scar_executor.py`
+- **KEY ASSERTIONS**: Tool succeeds, DB has records, SSE stream yields within timeout, activity has id/timestamp/source/message
 - **VALIDATE**: `uv run pytest tests/integration/test_sse_feed_integration.py -v`
 
 #### TASK 12: RUN full test suite
 
-- **EXECUTE**:
-```bash
-# Run all tests
-uv run pytest tests/ -v
-
-# Check coverage
-uv run pytest tests/ --cov=src --cov-report=term-missing
-```
-- **EXPECTED**: All tests pass, including new integration test
-- **VALIDATE**: Coverage ≥ 80% for modified files
+- **EXECUTE**: `uv run pytest tests/ -v && uv run pytest --cov=src --cov-report=term-missing`
+- **EXPECTED**: All tests pass, coverage ≥ 80% for modified files
 
 ---
 
 ## TESTING STRATEGY
 
-### Level 1: Import Validation (CRITICAL)
+**Level 1 - Imports**: `uv run python -c "from src.agent.orchestrator_agent import execute_scar; from src.services.scar_executor import execute_scar_command; from src.services.scar_feed_service import stream_scar_activity; from src.api.sse import router; print('✓')"`
 
-**Verify all imports resolve:**
-```bash
-uv run python -c "from src.agent.orchestrator_agent import execute_scar; from src.services.scar_executor import execute_scar_command; from src.services.scar_feed_service import stream_scar_activity; from src.api.sse import router; print('✓ All imports valid')"
-```
-**Expected**: "✓ All imports valid"
+**Level 2 - Unit**: `uv run pytest tests/services/test_scar_executor.py tests/agent/ -v`
 
-### Level 2: Unit Tests
+**Level 3 - Integration**: `uv run pytest tests/integration/test_sse_feed_integration.py -v`
 
-**Test individual components:**
-```bash
-uv run pytest tests/services/test_scar_executor.py -v
-uv run pytest tests/agent/test_orchestrator_agent.py -v
-```
-**Expected**: All existing tests continue to pass
+**Level 4 - Manual**: Start backend, send "analyze the codebase", verify SSE feed populates within 2s, check DIAGNOSTIC logs
 
-### Level 3: Integration Tests
-
-**Test end-to-end SSE flow:**
-```bash
-uv run pytest tests/integration/test_sse_feed_integration.py -v
-```
-**Expected**: New integration test passes, validates complete flow
-
-### Level 4: Manual Validation
-
-**Test in live environment:**
-
-1. Start backend: `uv run uvicorn src.main:app --reload --port 8000`
-2. Open WebUI at http://localhost:3000
-3. Send message: "analyze the codebase"
-4. **VERIFY**:
-   - [ ] PM responds with analysis
-   - [ ] Right pane SSE feed shows "prime" activity within 2 seconds
-   - [ ] Activity includes timestamp, source="scar", message
-5. Check backend logs for all DIAGNOSTIC messages
-6. Run diagnostic script: `uv run python scripts/diagnose_sse_feed.py <project_id>`
-
-### Level 5: Diagnostic Script
-
-**Validate database queries:**
-```bash
-# Get project ID
-PROJECT_ID=$(uv run python -c "import asyncio; from src.database.connection import async_session_maker; from sqlalchemy import select; from src.database.models import Project; async def get_id(): async with async_session_maker() as s: r = await s.execute(select(Project).limit(1)); p = r.scalar_one_or_none(); print(p.id if p else ''); asyncio.run(get_id())")
-
-# Run diagnostic
-uv run python scripts/diagnose_sse_feed.py $PROJECT_ID
-```
-**Expected**: Script shows executions, query results, @property values
+**Level 5 - Diagnostic**: Get project ID, run `uv run python scripts/diagnose_sse_feed.py $PROJECT_ID`
 
 ---
 
 ## VALIDATION COMMANDS
 
-Execute every command to ensure zero regressions and 100% feature correctness.
+**Level 1 - Import**: `uv run python -c "from src.agent.orchestrator_agent import execute_scar; from src.services.scar_executor import execute_scar_command; from src.services.scar_feed_service import stream_scar_activity; from src.api.sse import router; print('✓')"`
 
-### Level 1: Import Validation (CRITICAL)
-```bash
-uv run python -c "from src.agent.orchestrator_agent import execute_scar; from src.services.scar_executor import execute_scar_command; from src.services.scar_feed_service import stream_scar_activity; from src.api.sse import router; print('✓ All imports valid')"
-```
+**Level 2 - Syntax**: `uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/ && uv run mypy src/`
 
-### Level 2: Syntax & Style
-```bash
-uv run ruff check src/ tests/
-uv run ruff format --check src/ tests/
-uv run mypy src/
-```
+**Level 3 - Unit**: `uv run pytest tests/ -v --maxfail=1`
 
-### Level 3: Unit Tests
-```bash
-uv run pytest tests/services/test_scar_executor.py -v
-uv run pytest tests/agent/ -v
-uv run pytest tests/ -v --maxfail=1
-```
+**Level 4 - Integration**: `uv run pytest tests/integration/test_sse_feed_integration.py -v`
 
-### Level 4: Integration Tests
-```bash
-uv run pytest tests/integration/test_sse_feed_integration.py -v
-```
+**Level 5 - Diagnostic**: Get project ID, run `uv run python scripts/diagnose_sse_feed.py $PROJECT_ID`
 
-### Level 5: Diagnostic Validation
-```bash
-PROJECT_ID=$(uv run python -c "import asyncio; from src.database.connection import async_session_maker; from sqlalchemy import select; from src.database.models import Project; async def get_id(): async with async_session_maker() as s: r = await s.execute(select(Project).limit(1)); p = r.scalar_one_or_none(); print(p.id if p else ''); asyncio.run(get_id())")
-uv run python scripts/diagnose_sse_feed.py $PROJECT_ID
-```
-
-### Level 6: Manual E2E Test
-```bash
-# Terminal 1: Start backend with debug logging
-export LOG_LEVEL=DEBUG
-uv run uvicorn src.main:app --reload --port 8000
-
-# Terminal 2: Monitor diagnostic logs
-tail -f logs/app.log | grep DIAGNOSTIC
-
-# Terminal 3: Start frontend (if applicable)
-cd frontend && npm run dev
-
-# Browser: Open http://localhost:3000, send "analyze the codebase", verify SSE feed populates
-```
+**Level 6 - Manual**: Start backend (`export LOG_LEVEL=DEBUG; uv run uvicorn src.main:app --reload`), monitor logs (`tail -f logs/app.log | grep DIAGNOSTIC`), test in browser
 
 ---
 
