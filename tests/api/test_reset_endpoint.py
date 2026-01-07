@@ -71,7 +71,6 @@ async def test_reset_endpoint_creates_topic_with_correct_title(client, db_sessio
     response = await client.post(f"/api/projects/{project.id}/reset")
 
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
 
     # Verify the new topic has the correct title
     active_topic = await get_active_topic(db_session, project.id)

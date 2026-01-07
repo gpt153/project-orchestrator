@@ -51,9 +51,9 @@ async def save_conversation_message(
         ConversationMessage: Saved message object
     """
     from src.services.topic_manager import (
-        get_active_topic,
         create_new_topic,
-        should_create_new_topic
+        get_active_topic,
+        should_create_new_topic,
     )
 
     # Auto-detect topic if not provided

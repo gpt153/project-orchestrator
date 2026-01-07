@@ -205,7 +205,7 @@ async def test_multiple_resets_in_sequence(db_session):
     await db_session.commit()
 
     # Topic 1
-    msg1 = await save_conversation_message(db_session, project.id, MessageRole.USER, "Topic 1")
+    await save_conversation_message(db_session, project.id, MessageRole.USER, "Topic 1")
     topic1 = await get_active_topic(db_session, project.id)
 
     # Reset to Topic 2

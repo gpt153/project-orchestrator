@@ -5,8 +5,6 @@ These tests verify that the topic segmentation system works correctly
 in real-world scenarios.
 """
 
-from datetime import datetime, timedelta
-
 import pytest
 
 from src.agent.tools import get_conversation_history, save_conversation_message
@@ -130,13 +128,13 @@ async def test_conversation_history_filters_by_topic(db_session):
     await db_session.commit()
 
     # Topic 1 messages
-    msg1 = await save_conversation_message(
+    await save_conversation_message(
         db_session,
         project.id,
         MessageRole.USER,
         "Let's discuss Feature A"
     )
-    msg2 = await save_conversation_message(
+    await save_conversation_message(
         db_session,
         project.id,
         MessageRole.ASSISTANT,
@@ -255,7 +253,7 @@ async def test_get_history_with_specific_topic_id(db_session):
     topic1_id = msg1.topic_id
 
     # Topic 2
-    msg2 = await save_conversation_message(
+    await save_conversation_message(
         db_session,
         project.id,
         MessageRole.USER,

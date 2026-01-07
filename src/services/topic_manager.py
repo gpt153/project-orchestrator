@@ -5,14 +5,14 @@ Handles automatic topic segmentation based on conversation flow.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import select, and_, desc
+from sqlalchemy import and_, desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database.models import ConversationTopic, ConversationMessage, MessageRole
+from src.database.models import ConversationMessage, ConversationTopic, MessageRole
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ async def get_active_topic(session: AsyncSession, project_id: UUID) -> Optional[
         .where(
             and_(
                 ConversationTopic.project_id == project_id,
-                ConversationTopic.is_active == True
+                ConversationTopic.is_active
             )
         )
         .order_by(desc(ConversationTopic.started_at))

@@ -7,6 +7,7 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.connection import get_session
@@ -19,7 +20,6 @@ from src.services.project_service import (
     get_project_with_stats,
 )
 from src.services.topic_manager import create_new_topic
-from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
