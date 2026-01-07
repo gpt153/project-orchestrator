@@ -128,6 +128,7 @@ async def test_run_orchestrator_saves_messages(db_session):
     with patch.object(orchestrator_agent, "run", new_callable=AsyncMock) as mock_run:
         mock_result = MagicMock()
         mock_result.data = "Hello! I'd be happy to help you build your project."
+        mock_result.output = "Hello! I'd be happy to help you build your project."
         mock_run.return_value = mock_result
 
         # Run the orchestrator
@@ -180,8 +181,12 @@ def test_detect_topic_change_with_new_topic_phrase():
     """Test that detect_topic_change identifies 'let's discuss' phrases"""
     now = datetime.now(timezone.utc)
     messages = [
-        MagicMock(content="Previous topic", timestamp=now - timedelta(minutes=5), role=MessageRole.USER),
-        MagicMock(content="Response", timestamp=now - timedelta(minutes=4), role=MessageRole.ASSISTANT),
+        MagicMock(
+            content="Previous topic", timestamp=now - timedelta(minutes=5), role=MessageRole.USER
+        ),
+        MagicMock(
+            content="Response", timestamp=now - timedelta(minutes=4), role=MessageRole.ASSISTANT
+        ),
         MagicMock(content="lets discuss something else", timestamp=now, role=MessageRole.USER),
     ]
 
@@ -267,13 +272,18 @@ async def test_run_orchestrator_with_topic_change_warning(db_session):
     # Add conversation history with topic switch
     from src.agent.tools import save_conversation_message
 
-    await save_conversation_message(
+    # Save messages - these will auto-create the first topic
+    msg1 = await save_conversation_message(
         db_session, project.id, MessageRole.USER, "Let's discuss the SSE feed"
     )
-    await save_conversation_message(
+    msg2 = await save_conversation_message(
         db_session, project.id, MessageRole.ASSISTANT, "Sure, the SSE feed..."
     )
     await db_session.commit()
+
+    # Refresh messages to ensure relationships are loaded
+    await db_session.refresh(msg1)
+    await db_session.refresh(msg2)
 
     # Mock the agent run method to capture the prompt
     captured_prompt = None
@@ -282,6 +292,7 @@ async def test_run_orchestrator_with_topic_change_warning(db_session):
         nonlocal captured_prompt
         captured_prompt = prompt
         mock_result = MagicMock()
+        mock_result.data = "I understand, focusing on chat features now."
         mock_result.output = "I understand, focusing on chat features now."
         return mock_result
 
@@ -336,6 +347,7 @@ async def test_run_orchestrator_with_recency_weighting(db_session):
         nonlocal captured_prompt
         captured_prompt = prompt
         mock_result = MagicMock()
+        mock_result.data = "Response"
         mock_result.output = "Response"
         return mock_result
 
@@ -350,4 +362,6 @@ async def test_run_orchestrator_with_recency_weighting(db_session):
         assert "CURRENT CONVERSATION (Most Important)" in captured_prompt
         assert "Earlier Context (Only If Relevant)" in captured_prompt
         # Most recent messages should appear before older ones
-        assert captured_prompt.index("CURRENT CONVERSATION") < captured_prompt.index("Earlier Context")
+        assert captured_prompt.index("CURRENT CONVERSATION") < captured_prompt.index(
+            "Earlier Context"
+        )

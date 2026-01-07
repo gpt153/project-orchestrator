@@ -271,8 +271,7 @@ async def get_scar_history(
         history = [
             exec
             for exec in history
-            if exec.started_at
-            and exec.started_at.replace(tzinfo=timezone.utc) > cutoff_time
+            if exec.started_at and exec.started_at.replace(tzinfo=timezone.utc) > cutoff_time
         ]
 
     return [
@@ -419,10 +418,10 @@ async def run_orchestrator(
     # Save user message first (this handles topic detection)
     await save_conversation_message(session, project_id, MessageRole.USER, user_message)
 
-    # Get conversation history - ONLY from active topic
-    # This ensures we don't bleed context from old topics
+    # Get conversation history - include all topics for topic change detection
+    # We need to see messages from previous topics to detect when user switches topics
     history_messages = await get_conversation_history(
-        session, project_id, limit=50, active_topic_only=True  # Only get current topic
+        session, project_id, limit=50, active_topic_only=False  # Get all topics for comparison
     )
 
     # Build conversation context from history
@@ -461,7 +460,9 @@ async def run_orchestrator(
         if len(history_messages) > 1:  # More than just the current message
             if topic_changed:
                 # Topic changed - only use recent messages, add warning
-                history_context = "\n\n⚠️ **IMPORTANT: The user has switched topics or corrected you.**\n\n"
+                history_context = (
+                    "\n\n⚠️ **IMPORTANT: The user has switched topics or corrected you.**\n\n"
+                )
                 history_context += "## CURRENT TOPIC (Focus on this):\n\n"
                 # Only last 4 messages (2 turns)
                 for msg in history_messages[-5:-1][-4:]:

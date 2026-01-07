@@ -110,6 +110,7 @@ async def test_extract_features(db_session):
         mock_agent = AsyncMock()
         mock_result = AsyncMock()
         mock_result.data = mock_features
+        mock_result.output = mock_features
         mock_agent.run.return_value = mock_result
         mock_get_agent.return_value = mock_agent
 
@@ -188,6 +189,7 @@ async def test_generate_vision_document_success(db_session):
             mock_vision_agent = AsyncMock()
             mock_gen_result = AsyncMock()
             mock_gen_result.data = mock_vision
+            mock_gen_result.output = mock_vision
             mock_vision_agent.run.return_value = mock_gen_result
             mock_get_vision.return_value = mock_vision_agent
 
