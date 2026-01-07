@@ -8,7 +8,7 @@ in real-world scenarios.
 import pytest
 
 from src.agent.tools import get_conversation_history, save_conversation_message
-from src.database.models import MessageRole, Project
+from src.database.models import ConversationTopic, MessageRole, Project
 from src.services.topic_manager import get_active_topic
 
 
@@ -76,7 +76,7 @@ async def test_explicit_topic_switch(db_session):
     assert msg1.topic_id != msg2.topic_id
 
     # Verify first topic is ended
-    first_topic = await db_session.get(type(msg1.topic), msg1.topic_id)
+    first_topic = await db_session.get(ConversationTopic, msg1.topic_id)
     assert first_topic.is_active is False
     assert first_topic.ended_at is not None
 
