@@ -35,7 +35,7 @@ async def save_conversation_message(
     project_id: UUID,
     role: MessageRole,
     content: str,
-    topic_id: Optional[UUID] = None
+    topic_id: Optional[UUID] = None,
 ) -> ConversationMessage:
     """
     Save a conversation message to the database.
@@ -71,7 +71,9 @@ async def save_conversation_message(
                     topic_id = active_topic.id
                 else:
                     # No active topic - create first one
-                    new_topic = await create_new_topic(session, project_id, title="Initial Conversation")
+                    new_topic = await create_new_topic(
+                        session, project_id, title="Initial Conversation"
+                    )
                     topic_id = new_topic.id
         else:
             # Assistant messages - always use active topic
@@ -85,7 +87,7 @@ async def save_conversation_message(
         topic_id=topic_id,
         role=role,
         content=content,
-        timestamp=datetime.utcnow()
+        timestamp=datetime.utcnow(),
     )
 
     session.add(message)
@@ -137,7 +139,7 @@ async def get_conversation_history(
     project_id: UUID,
     limit: int = 50,
     topic_id: Optional[UUID] = None,
-    active_topic_only: bool = False
+    active_topic_only: bool = False,
 ) -> list[ConversationMessage]:
     """
     Retrieve conversation history for a project.

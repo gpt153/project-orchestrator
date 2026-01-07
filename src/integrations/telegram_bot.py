@@ -216,7 +216,7 @@ class OrchestratorTelegramBot:
                 session,
                 project_id,
                 title="Reset - New Conversation",
-                summary="User requested context reset via Telegram"
+                summary="User requested context reset via Telegram",
             )
             await session.commit()
 
@@ -227,7 +227,9 @@ class OrchestratorTelegramBot:
                 "💬 Starting fresh - what would you like to discuss?"
             )
 
-            logger.info(f"Reset conversation for project {project_id} via Telegram, new topic: {new_topic.id}")
+            logger.info(
+                f"Reset conversation for project {project_id} via Telegram, new topic: {new_topic.id}"
+            )
             await update.message.reply_text(reset_message, parse_mode="Markdown")
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

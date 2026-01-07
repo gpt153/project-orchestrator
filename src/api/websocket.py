@@ -83,7 +83,9 @@ async def websocket_chat_endpoint(websocket: WebSocket, project_id: UUID):
                                 },
                                 connection_id,
                             )
-                            logger.info(f"Reset conversation for project {project_id} via WebSocket")
+                            logger.info(
+                                f"Reset conversation for project {project_id} via WebSocket"
+                            )
                         except Exception as reset_error:
                             logger.error(f"Error resetting conversation: {reset_error}")
                             await session.rollback()

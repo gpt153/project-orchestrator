@@ -154,10 +154,14 @@ class ConversationTopic(Base):
 
     # Relationships
     project = relationship("Project", back_populates="conversation_topics")
-    messages = relationship("ConversationMessage", back_populates="topic", cascade="all, delete-orphan")
+    messages = relationship(
+        "ConversationMessage", back_populates="topic", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
-        return f"<ConversationTopic(id={self.id}, title={self.topic_title}, active={self.is_active})>"
+        return (
+            f"<ConversationTopic(id={self.id}, title={self.topic_title}, active={self.is_active})>"
+        )
 
 
 class ConversationMessage(Base):

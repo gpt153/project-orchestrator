@@ -169,7 +169,10 @@ async def reset_project_conversation(
 
         # Create new topic (this automatically ends the previous one)
         new_topic = await create_new_topic(
-            session, project_id, title="Reset - New Conversation", summary="User requested context reset"
+            session,
+            project_id,
+            title="Reset - New Conversation",
+            summary="User requested context reset",
         )
 
         await session.commit()

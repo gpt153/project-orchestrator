@@ -21,10 +21,7 @@ async def test_first_message_creates_topic(db_session):
 
     # Save first message
     message = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Hello, I want to build a feature"
+        db_session, project.id, MessageRole.USER, "Hello, I want to build a feature"
     )
 
     # Verify topic was created
@@ -43,18 +40,12 @@ async def test_continuing_conversation_same_topic(db_session):
 
     # First message
     msg1 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "I want to add dark mode"
+        db_session, project.id, MessageRole.USER, "I want to add dark mode"
     )
 
     # Second message (continuation)
     msg2 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "It should toggle between light and dark"
+        db_session, project.id, MessageRole.USER, "It should toggle between light and dark"
     )
 
     # Both messages should be in the same topic
@@ -70,10 +61,7 @@ async def test_explicit_topic_switch(db_session):
 
     # First conversation
     msg1 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "I want to add dark mode"
+        db_session, project.id, MessageRole.USER, "I want to add dark mode"
     )
 
     # Explicit topic switch
@@ -81,7 +69,7 @@ async def test_explicit_topic_switch(db_session):
         db_session,
         project.id,
         MessageRole.USER,
-        "let's discuss a different feature - user authentication"
+        "let's discuss a different feature - user authentication",
     )
 
     # Should be in different topics
@@ -102,10 +90,7 @@ async def test_user_correction_creates_new_topic(db_session):
 
     # First message
     msg1 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Tell me about the SSE feed"
+        db_session, project.id, MessageRole.USER, "Tell me about the SSE feed"
     )
 
     # User correction
@@ -113,7 +98,7 @@ async def test_user_correction_creates_new_topic(db_session):
         db_session,
         project.id,
         MessageRole.USER,
-        "but we weren't discussing the SSE feed, we were talking about chat features"
+        "but we weren't discussing the SSE feed, we were talking about chat features",
     )
 
     # Should create new topic
@@ -129,38 +114,23 @@ async def test_conversation_history_filters_by_topic(db_session):
 
     # Topic 1 messages
     await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Let's discuss Feature A"
+        db_session, project.id, MessageRole.USER, "Let's discuss Feature A"
     )
     await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.ASSISTANT,
-        "Great! Let's talk about Feature A"
+        db_session, project.id, MessageRole.ASSISTANT, "Great! Let's talk about Feature A"
     )
 
     # Topic 2 messages (switch)
     msg3 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "let's discuss Feature B instead"
+        db_session, project.id, MessageRole.USER, "let's discuss Feature B instead"
     )
     msg4 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.ASSISTANT,
-        "Sure, let's talk about Feature B"
+        db_session, project.id, MessageRole.ASSISTANT, "Sure, let's talk about Feature B"
     )
 
     # Get history for active topic only
     history = await get_conversation_history(
-        db_session,
-        project.id,
-        limit=50,
-        active_topic_only=True
+        db_session, project.id, limit=50, active_topic_only=True
     )
 
     # Should only include Topic 2 messages
@@ -177,19 +147,11 @@ async def test_assistant_messages_use_active_topic(db_session):
     await db_session.commit()
 
     # User message creates topic
-    user_msg = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Hello"
-    )
+    user_msg = await save_conversation_message(db_session, project.id, MessageRole.USER, "Hello")
 
     # Assistant response should use same topic
     assistant_msg = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.ASSISTANT,
-        "Hi! How can I help?"
+        db_session, project.id, MessageRole.ASSISTANT, "Hi! How can I help?"
     )
 
     assert user_msg.topic_id == assistant_msg.topic_id
@@ -204,26 +166,17 @@ async def test_multiple_topic_switches(db_session):
 
     # Topic 1
     msg1 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Let's talk about Feature A"
+        db_session, project.id, MessageRole.USER, "Let's talk about Feature A"
     )
 
     # Topic 2
     msg2 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "new topic - Feature B"
+        db_session, project.id, MessageRole.USER, "new topic - Feature B"
     )
 
     # Topic 3
     msg3 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "switching to Feature C"
+        db_session, project.id, MessageRole.USER, "switching to Feature C"
     )
 
     # All three should have different topics
@@ -245,27 +198,17 @@ async def test_get_history_with_specific_topic_id(db_session):
 
     # Topic 1
     msg1 = await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "Topic 1 message"
+        db_session, project.id, MessageRole.USER, "Topic 1 message"
     )
     topic1_id = msg1.topic_id
 
     # Topic 2
     await save_conversation_message(
-        db_session,
-        project.id,
-        MessageRole.USER,
-        "let's discuss something else"
+        db_session, project.id, MessageRole.USER, "let's discuss something else"
     )
 
     # Get history for topic 1 specifically
-    history = await get_conversation_history(
-        db_session,
-        project.id,
-        topic_id=topic1_id
-    )
+    history = await get_conversation_history(db_session, project.id, topic_id=topic1_id)
 
     # Should only include topic 1 messages
     assert len(history) == 1
@@ -288,13 +231,13 @@ async def test_context_isolation_prevents_bleeding(db_session):
         db_session,
         project.id,
         MessageRole.USER,
-        "Let's enhance the SSE feed to show detailed SCAR execution"
+        "Let's enhance the SSE feed to show detailed SCAR execution",
     )
     sse_msg2 = await save_conversation_message(
         db_session,
         project.id,
         MessageRole.ASSISTANT,
-        "Great idea! I'll help you enhance the SSE feed."
+        "Great idea! I'll help you enhance the SSE feed.",
     )
 
     # Jan 7: Discussion about chat features (Topic 2)
@@ -302,21 +245,18 @@ async def test_context_isolation_prevents_bleeding(db_session):
         db_session,
         project.id,
         MessageRole.USER,
-        "let's discuss a change in the webui for instant message display"
+        "let's discuss a change in the webui for instant message display",
     )
     chat_msg2 = await save_conversation_message(
         db_session,
         project.id,
         MessageRole.ASSISTANT,
-        "That's a great UX improvement for the chat interface"
+        "That's a great UX improvement for the chat interface",
     )
 
     # Get active topic history
     active_history = await get_conversation_history(
-        db_session,
-        project.id,
-        limit=50,
-        active_topic_only=True
+        db_session, project.id, limit=50, active_topic_only=True
     )
 
     # Should only contain chat messages, NOT SSE messages

@@ -33,11 +33,7 @@ async def test_get_active_topic_returns_active(db_session):
     db_session.add(project)
     await db_session.flush()
 
-    topic = ConversationTopic(
-        project_id=project.id,
-        topic_title="Active Topic",
-        is_active=True
-    )
+    topic = ConversationTopic(project_id=project.id, topic_title="Active Topic", is_active=True)
     db_session.add(topic)
     await db_session.commit()
 
@@ -56,9 +52,7 @@ async def test_get_active_topic_ignores_inactive(db_session):
 
     # Create inactive topic
     inactive_topic = ConversationTopic(
-        project_id=project.id,
-        topic_title="Inactive Topic",
-        is_active=False
+        project_id=project.id, topic_title="Inactive Topic", is_active=False
     )
     db_session.add(inactive_topic)
     await db_session.commit()
@@ -75,10 +69,7 @@ async def test_create_new_topic_first_topic(db_session):
     await db_session.commit()
 
     new_topic = await create_new_topic(
-        db_session,
-        project.id,
-        title="First Topic",
-        summary="This is the first topic"
+        db_session, project.id, title="First Topic", summary="This is the first topic"
     )
 
     assert new_topic is not None
@@ -155,16 +146,14 @@ async def test_should_create_new_topic_time_gap(db_session):
         topic_id=topic.id,
         role=MessageRole.USER,
         content="Old message",
-        timestamp=datetime.utcnow() - timedelta(hours=2)  # 2 hours ago
+        timestamp=datetime.utcnow() - timedelta(hours=2),  # 2 hours ago
     )
     db_session.add(old_message)
     await db_session.commit()
 
     # Check if new topic should be created
     should_create = await should_create_new_topic(
-        db_session,
-        project.id,
-        "New message after time gap"
+        db_session, project.id, "New message after time gap"
     )
 
     assert should_create is True
@@ -186,16 +175,14 @@ async def test_should_create_new_topic_no_gap(db_session):
         topic_id=topic.id,
         role=MessageRole.USER,
         content="Recent message",
-        timestamp=datetime.utcnow() - timedelta(minutes=5)  # 5 minutes ago
+        timestamp=datetime.utcnow() - timedelta(minutes=5),  # 5 minutes ago
     )
     db_session.add(recent_message)
     await db_session.commit()
 
     # Check if new topic should be created
     should_create = await should_create_new_topic(
-        db_session,
-        project.id,
-        "Continuing the conversation"
+        db_session, project.id, "Continuing the conversation"
     )
 
     assert should_create is False
@@ -216,7 +203,7 @@ async def test_generate_topic_title(db_session):
         project_id=project.id,
         topic_id=topic.id,
         role=MessageRole.USER,
-        content="I want to add a dark mode toggle to the app"
+        content="I want to add a dark mode toggle to the app",
     )
     db_session.add(message)
     await db_session.commit()
@@ -257,13 +244,10 @@ async def test_multiple_active_topics_returns_latest(db_session):
         project_id=project.id,
         topic_title="Topic 1",
         started_at=datetime.utcnow() - timedelta(hours=1),
-        is_active=True
+        is_active=True,
     )
     topic2 = ConversationTopic(
-        project_id=project.id,
-        topic_title="Topic 2",
-        started_at=datetime.utcnow(),
-        is_active=True
+        project_id=project.id, topic_title="Topic 2", started_at=datetime.utcnow(), is_active=True
     )
     db_session.add(topic1)
     db_session.add(topic2)

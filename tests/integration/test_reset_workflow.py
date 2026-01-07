@@ -119,7 +119,10 @@ async def test_reset_scenario_from_issue_56(db_session):
 
     # Jan 6: SSE Feed discussion
     sse_msg1 = await save_conversation_message(
-        db_session, project.id, MessageRole.USER, "Let's enhance the SSE feed to show SCAR execution"
+        db_session,
+        project.id,
+        MessageRole.USER,
+        "Let's enhance the SSE feed to show SCAR execution",
     )
     sse_msg2 = await save_conversation_message(
         db_session, project.id, MessageRole.ASSISTANT, "Great idea! I'll help with the SSE feed."

@@ -30,12 +30,7 @@ async def get_active_topic(session: AsyncSession, project_id: UUID) -> Optional[
     """
     stmt = (
         select(ConversationTopic)
-        .where(
-            and_(
-                ConversationTopic.project_id == project_id,
-                ConversationTopic.is_active
-            )
-        )
+        .where(and_(ConversationTopic.project_id == project_id, ConversationTopic.is_active))
         .order_by(desc(ConversationTopic.started_at))
         .limit(1)
     )
@@ -48,7 +43,7 @@ async def create_new_topic(
     session: AsyncSession,
     project_id: UUID,
     title: Optional[str] = None,
-    summary: Optional[str] = None
+    summary: Optional[str] = None,
 ) -> ConversationTopic:
     """
     Create a new conversation topic.
@@ -75,7 +70,7 @@ async def create_new_topic(
         topic_title=title or f"Topic {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}",
         topic_summary=summary,
         started_at=datetime.utcnow(),
-        is_active=True
+        is_active=True,
     )
     session.add(new_topic)
     await session.flush()  # Get ID
@@ -85,9 +80,7 @@ async def create_new_topic(
 
 
 async def should_create_new_topic(
-    session: AsyncSession,
-    project_id: UUID,
-    user_message: str
+    session: AsyncSession, project_id: UUID, user_message: str
 ) -> bool:
     """
     Determine if a new topic should be created based on conversation signals.
@@ -150,10 +143,7 @@ async def should_create_new_topic(
     return False
 
 
-async def generate_topic_title(
-    session: AsyncSession,
-    topic_id: UUID
-) -> str:
+async def generate_topic_title(session: AsyncSession, topic_id: UUID) -> str:
     """
     Generate a descriptive title for a topic based on its messages.
 
